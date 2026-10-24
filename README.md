@@ -40,7 +40,7 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 - [x] Express API setup
 - [x] PostgreSQL environment with Docker Compose
 - [x] TypeScript, ESLint, and Prettier configuration
-- [ ] Database schema and migrations
+- [x] Database schema and migrations
 - [ ] Authentication and authorization
 - [ ] Auction management
 - [ ] Real-time bidding
