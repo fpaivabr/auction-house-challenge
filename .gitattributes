@@ -27,3 +27,7 @@
 *.webp binary
 *.ico binary
 *.pdf binary
+
+# Database migrations
+*.sql text eol=lf
+*.toml text eol=lf

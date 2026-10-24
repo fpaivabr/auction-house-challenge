@@ -1,16 +1,31 @@
 ﻿import { app } from './app.js';
+import { env } from './config/env.js';
+import { prisma } from './shared/database/prisma.js';
 
-const PORT = Number(process.env.PORT ?? 3000);
-
-const server = app.listen(PORT, () => {
-  console.info(`Auction House API running on http://localhost:${PORT}`);
+const server = app.listen(env.PORT, () => {
+  console.info(`Auction House API running on http://localhost:${env.PORT}`);
 });
 
-const shutdown = () => {
-  server.close(() => {
-    process.exitCode = 0;
-  });
-};
+let isShuttingDown = false;
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+async function shutdown(): Promise<void> {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  server.close(async (error) => {
+    try {
+      await prisma.$disconnect();
+
+      if (error) {
+        console.error('Failed to close HTTP server:', error);
+        process.exitCode = 1;
+      }
+    } catch (disconnectError) {
+      console.error('Failed to disconnect database:', disconnectError);
+      process.exitCode = 1;
+    }
+  });
+}
+
+process.on('SIGINT', () => void shutdown());
+process.on('SIGTERM', () => void shutdown());

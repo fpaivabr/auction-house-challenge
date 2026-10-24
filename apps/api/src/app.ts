@@ -2,6 +2,8 @@
 import express from 'express';
 import helmet from 'helmet';
 
+import { prisma } from './shared/database/prisma.js';
+
 export const app = express();
 
 app.use(helmet());
@@ -13,4 +15,20 @@ app.get('/health', (_request, response) => {
     status: 'ok',
     service: 'auction-house-api',
   });
+});
+
+app.get('/health/db', async (_request, response) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+
+    response.status(200).json({
+      status: 'ok',
+      database: 'connected',
+    });
+  } catch {
+    response.status(503).json({
+      status: 'error',
+      database: 'unavailable',
+    });
+  }
 });

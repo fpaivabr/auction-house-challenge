@@ -1,0 +1,15 @@
+﻿import { config } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
+
+config({
+  path: fileURLToPath(new URL('../../.env', import.meta.url)),
+});
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
+  DATABASE_URL: z.url(),
+});
+
+export const env = envSchema.parse(process.env);

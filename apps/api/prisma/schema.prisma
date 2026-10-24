@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  AUCTIONEER
+  BIDDER
+}
+
+enum LotStatus {
+  DRAFT
+  SCHEDULED
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum WalletHoldStatus {
+  ACTIVE
+  RELEASED
+  CAPTURED
+}
+
+enum WalletTransactionType {
+  INITIAL_CREDIT
+  ADJUSTMENT
+  AUCTION_PAYMENT
+  AUCTION_RECEIPT
+  REFUND
+}
+
+enum SettlementStatus {
+  COMPLETED
+  REVERSED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  wallet      Wallet?
+  createdLots Lot[]        @relation("AuctioneerLots")
+  bids        Bid[]
+  walletHolds WalletHold[]
+  wonLots     Lot[]        @relation("WinningBidderLots")
+  settlements Settlement[] @relation("SettlementAuctioneer")
+  purchases   Settlement[] @relation("SettlementWinner")
+
+  @@index([role])
+}
+
+model Lot {
+  id                      String    @id @default(uuid()) @db.Uuid
+  auctioneerId            String    @db.Uuid
+  winningBidderId         String?   @db.Uuid
+  externalItemId          String
+  externalSource          String
+  title                   String    @db.VarChar(255)
+  description             String    @db.Text
+  imageUrl                String?   @db.Text
+  initialPriceInCents     BigInt
+  minimumIncrementInCents BigInt
+  currentPriceInCents     BigInt?
+  status                  LotStatus @default(DRAFT)
+  startsAt                DateTime?
+  endsAt                  DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  auctioneer    User         @relation("AuctioneerLots", fields: [auctioneerId], references: [id])
+  winningBidder User?        @relation("WinningBidderLots", fields: [winningBidderId], references: [id])
+  bids          Bid[]
+  walletHolds   WalletHold[]
+  settlement    Settlement?
+  receipt       Receipt?
+
+  @@index([status, endsAt])
+  @@index([auctioneerId, createdAt])
+  @@index([externalSource, externalItemId])
+}
+
+model Bid {
+  id            String   @id @default(uuid()) @db.Uuid
+  lotId         String   @db.Uuid
+  bidderId      String   @db.Uuid
+  amountInCents BigInt
+  createdAt     DateTime @default(now())
+
+  lot        Lot         @relation(fields: [lotId], references: [id])
+  bidder     User        @relation(fields: [bidderId], references: [id])
+  walletHold WalletHold?
+
+  @@index([lotId, createdAt])
+  @@index([bidderId, createdAt])
+}
+
+model Wallet {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @db.Uuid
+  balanceInCents BigInt   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model WalletHold {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @db.Uuid
+  lotId         String           @db.Uuid
+  bidId         String           @unique @db.Uuid
+  amountInCents BigInt
+  status        WalletHoldStatus @default(ACTIVE)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  lot  Lot  @relation(fields: [lotId], references: [id])
+  bid  Bid  @relation(fields: [bidId], references: [id])
+
+  @@index([userId, status])
+  @@index([lotId, status])
+}
+
+model WalletTransaction {
+  id            String                @id @default(uuid()) @db.Uuid
+  walletId      String                @db.Uuid
+  type          WalletTransactionType
+  amountInCents BigInt
+  referenceId   String?               @db.Uuid
+  createdAt     DateTime              @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([referenceId])
+}
+
+model Settlement {
+  id            String           @id @default(uuid()) @db.Uuid
+  lotId         String           @unique @db.Uuid
+  winnerId      String           @db.Uuid
+  auctioneerId  String           @db.Uuid
+  amountInCents BigInt
+  status        SettlementStatus @default(COMPLETED)
+  createdAt     DateTime         @default(now())
+
+  lot        Lot      @relation(fields: [lotId], references: [id])
+  winner     User     @relation("SettlementWinner", fields: [winnerId], references: [id])
+  auctioneer User     @relation("SettlementAuctioneer", fields: [auctioneerId], references: [id])
+  receipt    Receipt?
+
+  @@index([winnerId, createdAt])
+  @@index([auctioneerId, createdAt])
+}
+
+model Receipt {
+  id           String   @id @default(uuid()) @db.Uuid
+  lotId        String   @unique @db.Uuid
+  settlementId String   @unique @db.Uuid
+  publicToken  String   @unique
+  issuedAt     DateTime @default(now())
+
+  lot        Lot        @relation(fields: [lotId], references: [id])
+  settlement Settlement @relation(fields: [settlementId], references: [id])
+}
+
+model AuditEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  sequence     BigInt   @unique
+  eventType    String   @db.VarChar(80)
+  entityType   String   @db.VarChar(80)
+  entityId     String   @db.Uuid
+  payload      Json
+  previousHash String?  @db.VarChar(64)
+  hash         String   @db.VarChar(64)
+  createdAt    DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
