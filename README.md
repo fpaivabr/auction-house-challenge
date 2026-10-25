@@ -15,6 +15,7 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 ## Tech Stack
 
 **Backend**
+
 - Node.js
 - TypeScript
 - Express
@@ -23,12 +24,14 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 - Socket.IO (planned)
 
 **Frontend (planned)**
+
 - React
 - TypeScript
 - Vite
 - Tailwind CSS
 
 **Development Tools**
+
 - Docker Compose
 - ESLint
 - Prettier
