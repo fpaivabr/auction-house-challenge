@@ -50,7 +50,7 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 - [ ] Wallet and settlement system
 - [ ] Bid history integrity verification
 - [ ] Frontend implementation
-- [ ] Automated tests
+- [x] Automated tests
 - [ ] Deployment
 
 ## Documentation
