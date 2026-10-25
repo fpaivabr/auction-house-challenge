@@ -7,6 +7,9 @@ import { prisma } from './shared/database/prisma.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 
+import { lotsRouter } from './modules/lots/lots.routes.js';
+import { productsRouter } from './modules/products/products.routes.js';
+
 export const app = express();
 
 app.use(helmet());
@@ -21,6 +24,9 @@ app.get('/health', (_request, response) => {
 });
 
 app.use('/api/auth', authRouter);
+
+app.use('/api/products', productsRouter);
+app.use('/api/lots', lotsRouter);
 
 app.get('/health/db', async (_request, response) => {
   try {
