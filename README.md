@@ -44,8 +44,8 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 - [x] PostgreSQL environment with Docker Compose
 - [x] TypeScript, ESLint, and Prettier configuration
 - [x] Database schema and migrations
-- [ ] Authentication and authorization
-- [ ] Auction management
+- [x] Authentication and authorization
+- [x] Auction management
 - [ ] Real-time bidding
 - [ ] Wallet and settlement system
 - [ ] Bid history integrity verification
