@@ -8,6 +8,8 @@ import { authorize } from '../../shared/middleware/authorize.js';
 import { getExternalProduct } from '../products/products.service.js';
 import { createLotSchema, publishLotSchema } from './lots.schemas.js';
 import { publishLot } from './lots.service.js';
+import { placeBidSchema } from '../bids/bids.schemas.js';
+import { placeBid } from '../bids/bids.service.js';
 
 export const lotsRouter = Router();
 
@@ -36,6 +38,28 @@ function serializeLot(lot: {
     currentPriceInCents: lot.currentPriceInCents?.toString() ?? null,
   };
 }
+
+lotsRouter.post('/:id/bids', authenticate, authorize(UserRole.BIDDER), async (req, res) => {
+  const lotId = String(req.params.id);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lotId)) {
+    throw new AppError(400, 'Identificador de lote inválido.');
+  }
+
+  const result = placeBidSchema.safeParse(req.body);
+
+  if (!result.success) {
+    throw new AppError(400, 'Valor de lance inválido.');
+  }
+
+  const bid = await placeBid({
+    lotId,
+    bidderId: res.locals.user.id,
+    amountInCents: BigInt(result.data.amountInCents),
+  });
+
+  res.status(201).json({ bid });
+});
 
 lotsRouter.post('/', authenticate, authorize(UserRole.AUCTIONEER), async (req, res) => {
   const result = createLotSchema.safeParse(req.body);
