@@ -1,6 +1,7 @@
 ﻿import { LotStatus, WalletHoldStatus } from '../../generated/prisma/client.js';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
+import { appendAuditEntry } from '../audit/audit.service.js';
 
 type PlaceBidInput = {
   lotId: string;
@@ -138,6 +139,20 @@ export async function placeBid(input: PlaceBidInput) {
           currentPriceInCents: input.amountInCents,
           winningBidderId: input.bidderId,
           endsAt,
+        },
+      });
+
+      await appendAuditEntry(tx, {
+        eventType: 'BID_PLACED',
+        entityType: 'Bid',
+        entityId: bid.id,
+        payload: {
+          bidId: bid.id,
+          lotId: lot.id,
+          bidderId: input.bidderId,
+          amountInCents: input.amountInCents.toString(),
+          previousPriceInCents: lot.currentPriceInCents?.toString() ?? '',
+          endsAt: endsAt.toISOString(),
         },
       });
 
