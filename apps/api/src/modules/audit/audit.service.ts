@@ -149,3 +149,103 @@ export async function verifyAuditChain() {
     error: null,
   };
 }
+
+export async function verifyBidAuditConsistency(lotId: string) {
+  // Primeiro, verifica se os eventos de auditoria
+  // continuam criptograficamente íntegros.
+  const chain = await verifyAuditChain();
+
+  if (!chain.valid) {
+    return {
+      valid: false,
+      checkedBids: 0,
+      error: chain.error,
+    };
+  }
+
+  const [bids, auditEntries] = await Promise.all([
+    prisma.bid.findMany({
+      where: { lotId },
+      orderBy: { id: 'asc' },
+    }),
+    prisma.auditEntry.findMany({
+      where: {
+        eventType: 'BID_PLACED',
+        entityType: 'Bid',
+      },
+      orderBy: { sequence: 'asc' },
+    }),
+  ]);
+
+  const events = auditEntries.filter((entry) => {
+    if (!entry.payload || typeof entry.payload !== 'object' || Array.isArray(entry.payload)) {
+      return false;
+    }
+
+    return entry.payload.lotId === lotId;
+  });
+
+  if (bids.length !== events.length) {
+    return {
+      valid: false,
+      checkedBids: bids.length,
+      error: 'Quantidade de lances diferente do histórico auditado.',
+    };
+  }
+
+  const eventsByBidId = new Map<string, typeof events>();
+
+  for (const event of events) {
+    const existing = eventsByBidId.get(event.entityId) ?? [];
+    existing.push(event);
+    eventsByBidId.set(event.entityId, existing);
+  }
+
+  for (const bid of bids) {
+    const matchingEvents = eventsByBidId.get(bid.id) ?? [];
+
+    if (matchingEvents.length !== 1) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Lance sem evento de auditoria único.',
+      };
+    }
+
+    const event = matchingEvents[0];
+
+    if (
+      !event ||
+      !event.payload ||
+      typeof event.payload !== 'object' ||
+      Array.isArray(event.payload)
+    ) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Evento de auditoria inválido.',
+      };
+    }
+
+    const payload = event.payload;
+
+    if (
+      payload.bidId !== bid.id ||
+      payload.lotId !== bid.lotId ||
+      payload.bidderId !== bid.bidderId ||
+      payload.amountInCents !== bid.amountInCents.toString()
+    ) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Dados do lance divergentes da auditoria.',
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    checkedBids: bids.length,
+    error: null,
+  };
+}
