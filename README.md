@@ -47,7 +47,7 @@ Developed as part of the **Verzel Elite Dev 2026** technical challenge.
 - [x] Authentication and authorization
 - [x] Auction management
 - [ ] Real-time bidding
-- [ ] Wallet and settlement system
+- [x] Wallet and settlement system
 - [ ] Bid history integrity verification
 - [ ] Frontend implementation
 - [x] Automated tests
