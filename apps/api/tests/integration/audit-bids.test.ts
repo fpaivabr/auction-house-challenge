@@ -81,23 +81,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  try {
-    await prisma.bid.deleteMany({
-      where: { lotId },
-    });
-
-    await prisma.lot.deleteMany({
-      where: { id: lotId },
-    });
-
-    await prisma.user.deleteMany({
-      where: {
-        id: { in: [auctioneerId, bidderId] },
-      },
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
+  await prisma.$disconnect();
 });
 
 describe('Bid and audit consistency', () => {

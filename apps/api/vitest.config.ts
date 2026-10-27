@@ -22,5 +22,6 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     fileParallelism: false,
+    globalSetup: ['./tests/global-setup.ts'],
   },
 });

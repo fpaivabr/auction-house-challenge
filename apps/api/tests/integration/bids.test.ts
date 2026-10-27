@@ -59,35 +59,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.walletHold.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.bid.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.lot.deleteMany({
-        where: { id: { in: lotIds } },
-      });
-
-      await tx.walletTransaction.deleteMany({
-        where: { wallet: { userId: { in: userIds } } },
-      });
-
-      await tx.wallet.deleteMany({
-        where: { userId: { in: userIds } },
-      });
-
-      await tx.user.deleteMany({
-        where: { id: { in: userIds } },
-      });
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
+  await prisma.$disconnect();
 });
 
 describe('Auction bidding', () => {
