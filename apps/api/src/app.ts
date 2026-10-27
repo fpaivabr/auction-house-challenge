@@ -13,6 +13,8 @@ import { productsRouter } from './modules/products/products.routes.js';
 import { receiptsRouter } from './modules/receipts/receipts.routes.js';
 import { walletsRouter } from './modules/wallets/wallets.routes.js';
 
+import { auditRouter } from './modules/audit/audit.routes.js';
+
 export const app = express();
 
 app.use(helmet());
@@ -27,6 +29,7 @@ app.get('/health', (_request, response) => {
 });
 
 app.use('/api/auth', authRouter);
+app.use('/api/audit', auditRouter);
 
 app.use('/api/products', productsRouter);
 app.use('/api/lots', lotsRouter);
