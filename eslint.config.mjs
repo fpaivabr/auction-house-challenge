@@ -23,6 +23,9 @@ export default tseslint.config(
       globals: {
         ...globals.node,
       },
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
   {

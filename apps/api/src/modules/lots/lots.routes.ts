@@ -76,7 +76,7 @@ lotsRouter.post('/', authenticate, authorize(UserRole.AUCTIONEER), async (req, r
     data: {
       auctioneerId: res.locals.user.id,
       externalItemId: String(product.id),
-      externalSource: 'dummyjson',
+      externalSource: 'cleveland',
       title: product.title,
       description: product.description,
       imageUrl: product.thumbnail ?? product.images?.[0] ?? null,
@@ -121,6 +121,22 @@ lotsRouter.get('/', async (_req, res) => {
     },
     orderBy: { createdAt: 'desc' },
     take: 50,
+  });
+
+  res.status(200).json({
+    lots: lots.map(serializeLot),
+  });
+});
+
+lotsRouter.get('/mine', authenticate, authorize(UserRole.AUCTIONEER), async (_req, res) => {
+  const lots = await prisma.lot.findMany({
+    where: {
+      auctioneerId: res.locals.user.id,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 100,
   });
 
   res.status(200).json({

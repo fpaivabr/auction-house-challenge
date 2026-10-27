@@ -1,0 +1,196 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/geist';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: 'Geist Variable', sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: #f7f3ee;
+  --foreground: #1f1e1c;
+
+  --card: #ffffff;
+  --card-foreground: #1f1e1c;
+
+  --popover: #ffffff;
+  --popover-foreground: #1f1e1c;
+
+  --primary: #7a2234;
+  --primary-foreground: #ffffff;
+
+  --secondary: #eee5db;
+  --secondary-foreground: #1f1e1c;
+
+  --muted: #f0e9e1;
+  --muted-foreground: #605752;
+
+  --accent: #f0e5d6;
+  --accent-foreground: #4d1622;
+
+  --destructive: #b42332;
+
+  --border: #d9cdc3;
+  --input: #d9cdc3;
+  --ring: #7a2234;
+
+  --chart-1: #7a2234;
+  --chart-2: #c6a15b;
+  --chart-3: #2e8b57;
+  --chart-4: #3a77c8;
+  --chart-5: #d79a2b;
+
+  --radius: 0.625rem;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f1e1c;
+  --sidebar-primary: #7a2234;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0e5d6;
+  --sidebar-accent-foreground: #4d1622;
+  --sidebar-border: #d9cdc3;
+  --sidebar-ring: #7a2234;
+
+  --brand-gold: #c6a15b;
+  --brand-primary-hover: #681c2b;
+  --brand-primary-active: #4d1622;
+  --success: #237348;
+  --warning: #92600d;
+  --info: #3a77c8;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #121315;
+  --foreground: #f4efe8;
+
+  --card: #1c1e22;
+  --card-foreground: #f4efe8;
+
+  --popover: #1c1e22;
+  --popover-foreground: #f4efe8;
+
+  --primary: #7a2234;
+  --primary-foreground: #ffffff;
+
+  --secondary: #292b30;
+  --secondary-foreground: #f4efe8;
+
+  --muted: #292b30;
+  --muted-foreground: #bcb4ac;
+
+  --accent: #30272a;
+  --accent-foreground: #f4efe8;
+
+  --destructive: #c44949;
+
+  --border: #414145;
+  --input: #414145;
+  --ring: #d7b37a;
+
+  --chart-1: #7a2234;
+  --chart-2: #c6a15b;
+  --chart-3: #2e8b57;
+  --chart-4: #3a77c8;
+  --chart-5: #d79a2b;
+
+  --sidebar: #1c1e22;
+  --sidebar-foreground: #f4efe8;
+  --sidebar-primary: #7a2234;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #30272a;
+  --sidebar-accent-foreground: #f4efe8;
+  --sidebar-border: #414145;
+  --sidebar-ring: #d7b37a;
+
+  --brand-gold: #c6a15b;
+  --brand-primary-hover: #681c2b;
+  --brand-primary-active: #4d1622;
+  --success: #4aa879;
+  --warning: #e0ad54;
+  --info: #78a9ed;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+@layer base {
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .brand-button {
+    background-color: var(--primary);
+    color: #ffffff;
+  }
+
+  .brand-button:hover {
+    background-color: var(--brand-primary-hover);
+  }
+
+  .brand-button:active {
+    background-color: var(--brand-primary-active);
+  }
+}
