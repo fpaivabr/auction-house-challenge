@@ -249,3 +249,103 @@ export async function verifyBidAuditConsistency(lotId: string) {
     error: null,
   };
 }
+
+export async function verifyAllBidAuditConsistency() {
+  const chain = await verifyAuditChain();
+
+  if (!chain.valid) {
+    return {
+      valid: false,
+      checkedBids: 0,
+      error: chain.error,
+    };
+  }
+
+  const [bids, events] = await Promise.all([
+    prisma.bid.findMany({
+      select: {
+        id: true,
+        lotId: true,
+        bidderId: true,
+        amountInCents: true,
+      },
+    }),
+    prisma.auditEntry.findMany({
+      where: {
+        eventType: 'BID_PLACED',
+      },
+      orderBy: { sequence: 'asc' },
+    }),
+  ]);
+
+  if (bids.length !== events.length) {
+    return {
+      valid: false,
+      checkedBids: bids.length,
+      error: 'Quantidade global de lances diferente da auditoria.',
+    };
+  }
+
+  const eventsByBidId = new Map<string, (typeof events)[number]>();
+
+  for (const event of events) {
+    if (
+      event.entityType !== 'Bid' ||
+      !event.payload ||
+      typeof event.payload !== 'object' ||
+      Array.isArray(event.payload)
+    ) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Evento global de lance inválido.',
+      };
+    }
+
+    if (eventsByBidId.has(event.entityId)) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Evento de lance duplicado.',
+      };
+    }
+
+    eventsByBidId.set(event.entityId, event);
+  }
+
+  for (const bid of bids) {
+    const event = eventsByBidId.get(bid.id);
+
+    if (!event) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Lance sem evento de auditoria.',
+      };
+    }
+
+    const payload = event.payload;
+
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload) ||
+      payload.bidId !== bid.id ||
+      payload.lotId !== bid.lotId ||
+      payload.bidderId !== bid.bidderId ||
+      payload.amountInCents !== bid.amountInCents.toString()
+    ) {
+      return {
+        valid: false,
+        checkedBids: bids.length,
+        error: 'Lance divergente do evento auditado.',
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    checkedBids: bids.length,
+    error: null,
+  };
+}

@@ -12,6 +12,7 @@ const envSchema = z.object({
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
   AUDIT_SECRET: z.string().min(32),
+  AUDIT_CHECKPOINT_DIR: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

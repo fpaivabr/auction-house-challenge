@@ -12,6 +12,7 @@ import {
 } from '../../src/generated/prisma/client.js';
 import { prisma } from '../../src/shared/database/prisma.js';
 import { createAccessToken } from '../../src/shared/security/token.js';
+import { appendAuditEntry } from '../../src/modules/audit/audit.service.js';
 
 const suffix = randomUUID();
 const ids = {
@@ -91,6 +92,22 @@ beforeAll(async () => {
     },
   });
 
+  await prisma.$transaction((tx) =>
+    appendAuditEntry(tx, {
+      eventType: 'BID_PLACED',
+      entityType: 'Bid',
+      entityId: bid.id,
+      payload: {
+        bidId: bid.id,
+        lotId: lot.id,
+        bidderId: bidder.id,
+        amountInCents: '15000',
+        previousPriceInCents: '',
+        endsAt: lot.endsAt?.toISOString() ?? '',
+      },
+    }),
+  );
+
   await prisma.walletHold.create({
     data: {
       lotId: lot.id,
@@ -136,51 +153,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  try {
-    await prisma.$transaction(async (tx) => {
-      if (ids.receipt) {
-        await tx.receipt.deleteMany({
-          where: { publicToken: ids.receipt },
-        });
-      }
-
-      if (ids.settlement) {
-        await tx.settlement.deleteMany({
-          where: { id: ids.settlement },
-        });
-      }
-
-      if (ids.lot) {
-        await tx.walletHold.deleteMany({
-          where: { lotId: ids.lot },
-        });
-
-        await tx.bid.deleteMany({
-          where: { lotId: ids.lot },
-        });
-
-        await tx.lot.deleteMany({
-          where: { id: ids.lot },
-        });
-      }
-
-      const userIds = [ids.auctioneer, ids.bidder, ids.otherBidder].filter(Boolean);
-
-      await tx.walletTransaction.deleteMany({
-        where: { wallet: { userId: { in: userIds } } },
-      });
-
-      await tx.wallet.deleteMany({
-        where: { userId: { in: userIds } },
-      });
-
-      await tx.user.deleteMany({
-        where: { id: { in: userIds } },
-      });
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
+  await prisma.$disconnect();
 });
 
 describe('Wallet and receipt API', () => {

@@ -11,6 +11,7 @@ import {
 import { settleLot } from '../../src/modules/lots/lots.settlement.js';
 import { prisma } from '../../src/shared/database/prisma.js';
 import { synchronizeLotStatuses } from '../../src/modules/lots/lots.lifecycle.js';
+import { appendAuditEntry } from '../../src/modules/audit/audit.service.js';
 
 const suffix = randomUUID();
 const userIds: string[] = [];
@@ -83,6 +84,22 @@ async function createLotWithWinningBid(expired = true) {
     },
   });
 
+  await prisma.$transaction((tx) =>
+    appendAuditEntry(tx, {
+      eventType: 'BID_PLACED',
+      entityType: 'Bid',
+      entityId: bid.id,
+      payload: {
+        bidId: bid.id,
+        lotId: lot.id,
+        bidderId,
+        amountInCents: AMOUNT.toString(),
+        previousPriceInCents: '',
+        endsAt: lot.endsAt?.toISOString() ?? '',
+      },
+    }),
+  );
+
   await prisma.walletHold.create({
     data: {
       lotId: lot.id,
@@ -105,47 +122,7 @@ async function getBalance(userId: string) {
 }
 
 afterAll(async () => {
-  try {
-    await prisma.$transaction(async (tx) => {
-      await tx.receipt.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.walletTransaction.deleteMany({
-        where: {
-          wallet: {
-            userId: { in: userIds },
-          },
-        },
-      });
-
-      await tx.settlement.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.walletHold.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.bid.deleteMany({
-        where: { lotId: { in: lotIds } },
-      });
-
-      await tx.lot.deleteMany({
-        where: { id: { in: lotIds } },
-      });
-
-      await tx.wallet.deleteMany({
-        where: { userId: { in: userIds } },
-      });
-
-      await tx.user.deleteMany({
-        where: { id: { in: userIds } },
-      });
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
+  await prisma.$disconnect();
 });
 
 describe('Auction settlement', () => {

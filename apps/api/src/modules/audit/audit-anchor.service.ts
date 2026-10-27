@@ -1,5 +1,5 @@
 ﻿import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
-import { readFile, rename, writeFile } from 'node:fs/promises';
+import { link, readFile, unlink, writeFile } from 'node:fs/promises';
 
 import { env } from '../../config/env.js';
 
@@ -104,12 +104,17 @@ export async function writeAuditAnchor(path: string, sequence: bigint, hash: str
       flag: 'wx',
     });
 
-    await rename(temporaryPath, path);
+    // Cria o arquivo definitivo somente se ele ainda não existir.
+    // Diferentemente de rename(), não substitui uma âncora anterior.
+    await link(temporaryPath, path);
   } catch (error) {
-    const { unlink } = await import('node:fs/promises');
+    if (error instanceof Error && 'code' in error && error.code === 'EEXIST') {
+      throw new Error('A âncora já existe e não pode ser sobrescrita.', { cause: error });
+    }
 
-    await unlink(temporaryPath).catch(() => undefined);
     throw error;
+  } finally {
+    await unlink(temporaryPath).catch(() => undefined);
   }
 
   return signed;

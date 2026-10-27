@@ -61,4 +61,31 @@ describe('External audit anchor', () => {
       'Dados inválidos para a âncora.',
     );
   });
+
+  it('should not overwrite an existing anchor', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'audit-anchor-overwrite-'));
+
+    const path = join(directory, 'anchor.json');
+
+    try {
+      const firstHash = 'a'.repeat(64);
+      const secondHash = 'b'.repeat(64);
+
+      await writeAuditAnchor(path, 1n, firstHash);
+
+      await expect(writeAuditAnchor(path, 2n, secondHash)).rejects.toThrow(
+        'A âncora já existe e não pode ser sobrescrita.',
+      );
+
+      const savedAnchor = await readAuditAnchor(path);
+
+      expect(savedAnchor.sequence).toBe(1n);
+      expect(savedAnchor.hash).toBe(firstHash);
+    } finally {
+      await rm(directory, {
+        recursive: true,
+        force: true,
+      });
+    }
+  });
 });
