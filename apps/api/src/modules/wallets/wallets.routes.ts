@@ -1,13 +1,74 @@
 ﻿import { Router } from 'express';
 
-import { WalletHoldStatus } from '../../generated/prisma/client.js';
+import {
+  UserRole,
+  WalletHoldStatus,
+  WalletTransactionType,
+} from '../../generated/prisma/client.js';
+import { z } from 'zod';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
+import { authorize } from '../../shared/middleware/authorize.js';
 
 export const walletsRouter = Router();
 
 walletsRouter.use(authenticate);
+
+const depositSchema = z
+  .object({
+    amountInCents: z.number().int().min(100).max(1_000_000).safe(),
+  })
+  .strict();
+
+walletsRouter.post('/me/deposits', authorize(UserRole.BIDDER), async (req, res) => {
+  const parsed = depositSchema.safeParse(req.body);
+
+  if (!parsed.success) {
+    throw new AppError(400, 'Informe um depósito entre R$ 1,00 e R$ 10.000,00.');
+  }
+
+  const userId: string = res.locals.user.id;
+  const amountInCents = BigInt(parsed.data.amountInCents);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const wallet = await tx.wallet.findUnique({
+      where: { userId },
+    });
+
+    if (!wallet) {
+      throw new AppError(404, 'Carteira não encontrada.');
+    }
+
+    const updatedWallet = await tx.wallet.update({
+      where: { userId },
+      data: {
+        balanceInCents: {
+          increment: amountInCents,
+        },
+      },
+    });
+
+    const transaction = await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        type: WalletTransactionType.ADJUSTMENT,
+        amountInCents,
+      },
+    });
+
+    return { updatedWallet, transaction };
+  });
+
+  res.status(201).json({
+    deposit: {
+      id: result.transaction.id,
+      amountInCents: result.transaction.amountInCents.toString(),
+      createdAt: result.transaction.createdAt,
+    },
+    balanceInCents: result.updatedWallet.balanceInCents.toString(),
+  });
+});
 
 walletsRouter.get('/me', async (_req, res) => {
   const userId: string = res.locals.user.id;

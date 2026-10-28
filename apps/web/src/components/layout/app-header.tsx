@@ -41,16 +41,15 @@ type AppHeaderProps = {
 export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
 
   const isAuctioneer = user?.role === 'AUCTIONEER';
   const accountDestination = isAuctioneer ? '/painel' : '/carteira';
   const accountLabel = isAuctioneer ? 'Meu painel' : 'Minha carteira';
 
   function handleLogout() {
-    signOut();
     setMenuOpen(false);
-    navigate('/');
+    navigate('/sair');
   }
 
   function closeMenu() {

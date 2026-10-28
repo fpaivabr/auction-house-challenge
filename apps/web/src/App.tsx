@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { ProtectedRoute } from '@/features/auth/protected-route';
 import { AuctioneerPanelPage } from '@/pages/auctioneer-panel-page';
 import { CreateLotPage } from '@/pages/create-lot-page';
 import { WalletPage } from '@/pages/wallet-page';
+import { LogoutPage } from '@/pages/logout-page';
 
 type PlaceholderPageProps = {
   title: string;
@@ -44,12 +45,13 @@ function PlaceholderPage({ title, description }: PlaceholderPageProps) {
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <AppHeader theme={theme} onToggleTheme={toggleTheme} />
 
-      <Routes>
+      <Routes key={location.pathname}>
         <Route path="/" element={<HomePage />} />
 
         <Route path="/lotes/:id" element={<LotDetailsPage />} />
@@ -57,6 +59,8 @@ function App() {
         <Route path="/login" element={<AuthPage mode="login" />} />
 
         <Route path="/cadastro" element={<AuthPage mode="register" />} />
+
+        <Route path="/sair" element={<LogoutPage />} />
 
         <Route
           path="/carteira"

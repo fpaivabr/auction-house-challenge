@@ -1,4 +1,4 @@
-﻿import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Gavel } from 'lucide-react';
 
@@ -22,9 +22,33 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
+    if (isRegister && name.trim().length < 2) {
+      setError('Informe seu nome com pelo menos dois caracteres.');
+      return;
+    }
+
+    if (!email.trim()) {
+      setError('Informe seu e-mail.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Informe um endereço de e-mail válido.');
+      return;
+    }
+
+    if (!password) {
+      setError('Informe sua senha.');
+      return;
+    }
+
+    if (isRegister && password.length < 8) {
+      setError('A senha deve conter pelo menos oito caracteres.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -65,7 +89,7 @@ export function AuthPage({ mode }: AuthPageProps) {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {isRegister && (
             <label className="block space-y-2 text-sm font-medium">
               <span>Nome completo</span>
@@ -76,7 +100,10 @@ export function AuthPage({ mode }: AuthPageProps) {
                 minLength={2}
                 maxLength={120}
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+  setName(event.target.value);
+  setError(null);
+}}
                 className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Seu nome"
               />
@@ -90,7 +117,10 @@ export function AuthPage({ mode }: AuthPageProps) {
               autoComplete="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+  setEmail(event.target.value);
+  setError(null);
+}}
               className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="seu@email.com"
             />
@@ -104,7 +134,10 @@ export function AuthPage({ mode }: AuthPageProps) {
               required
               minLength={isRegister ? 8 : 1}
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+  setPassword(event.target.value);
+  setError(null);
+}}
               className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder={isRegister ? 'Mínimo de 8 caracteres' : 'Sua senha'}
             />

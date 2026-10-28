@@ -84,3 +84,10 @@ export async function placeBid(
 
   return response.bid;
 }
+
+export async function createDeposit(token: string, amountInCents: number): Promise<void> {
+  await authenticatedRequest('/wallet/me/deposits', token, {
+    method: 'POST',
+    body: JSON.stringify({ amountInCents }),
+  });
+}

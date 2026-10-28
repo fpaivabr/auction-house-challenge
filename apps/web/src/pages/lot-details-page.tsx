@@ -1,8 +1,18 @@
-﻿import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type SubmitEvent } from 'react';
 import { ArrowLeft, CalendarClock, Gavel, ShieldCheck } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/features/auth/use-auth';
 import {
   formatCurrency,
@@ -26,6 +36,7 @@ export function LotDetailsPage() {
   const [submittingBid, setSubmittingBid] = useState(false);
   const [bidError, setBidError] = useState<string | null>(null);
   const [bidSuccess, setBidSuccess] = useState<string | null>(null);
+  const [pendingBidAmountInCents, setPendingBidAmountInCents] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -77,7 +88,7 @@ export function LotDetailsPage() {
     };
   }, [token, user?.role]);
 
-  async function handlePlaceBid(event: FormEvent<HTMLFormElement>) {
+  function handlePlaceBid(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (
@@ -93,6 +104,11 @@ export function LotDetailsPage() {
 
     setBidError(null);
     setBidSuccess(null);
+
+    if (!bidAmount.trim()) {
+      setBidError('Informe o valor do seu lance.');
+      return;
+    }
 
     const normalizedAmount = bidAmount.trim().replace(',', '.');
 
@@ -120,28 +136,40 @@ export function LotDetailsPage() {
       return;
     }
 
+    // Não registra ainda. Abre primeiro o modal de confirmação.
+    setPendingBidAmountInCents(amountInCents);
+  }
+
+  async function confirmBid() {
+    if (
+      !id ||
+      !token ||
+      !lot ||
+      user?.role !== 'BIDDER' ||
+      lot.status !== 'OPEN' ||
+      pendingBidAmountInCents === null ||
+      submittingBid
+    ) {
+      return;
+    }
+
     setSubmittingBid(true);
+    setBidError(null);
+    setBidSuccess(null);
 
     try {
-      await placeBid(id, amountInCents, token);
+      await placeBid(id, pendingBidAmountInCents, token);
 
+      setPendingBidAmountInCents(null);
       setBidAmount('');
       setBidSuccess('Lance registrado com sucesso!');
-
-      const [updatedLot, updatedWallet] = await Promise.allSettled([getLot(id), getWallet(token)]);
-
-      if (updatedLot.status === 'fulfilled') {
-        setLot(updatedLot.value);
-      }
-
-      if (updatedWallet.status === 'fulfilled') {
-        setWallet(updatedWallet.value);
-      }
     } catch (cause: unknown) {
-      setBidError(cause instanceof Error ? cause.message : 'Não foi possível registrar o lance.');
+      setPendingBidAmountInCents(null);
 
-      // Atualiza os valores caso outro participante tenha dado
-      // um lance enquanto este usuário preenchia o formulário.
+      setBidError(cause instanceof Error ? cause.message : 'Não foi possível registrar o lance.');
+    } finally {
+      // Obtém os valores atuais mesmo quando o lance foi recusado,
+      // por exemplo, porque outro participante ofereceu mais.
       const [updatedLot, updatedWallet] = await Promise.allSettled([getLot(id), getWallet(token)]);
 
       if (updatedLot.status === 'fulfilled') {
@@ -151,7 +179,7 @@ export function LotDetailsPage() {
       if (updatedWallet.status === 'fulfilled') {
         setWallet(updatedWallet.value);
       }
-    } finally {
+
       setSubmittingBid(false);
     }
   }
@@ -279,7 +307,11 @@ export function LotDetailsPage() {
 
               {lot.status === 'OPEN' ? (
                 user?.role === 'BIDDER' && token ? (
-                  <form onSubmit={handlePlaceBid} className="space-y-4 border-t border-border pt-5">
+                  <form
+                    onSubmit={handlePlaceBid}
+                    noValidate
+                    className="space-y-4 border-t border-border pt-5"
+                  >
                     {wallet && (
                       <div className="rounded-lg bg-muted/50 p-4 text-sm">
                         <p className="text-muted-foreground">Saldo disponível</p>
@@ -316,19 +348,21 @@ export function LotDetailsPage() {
                         }}
                         placeholder={(Number(minimumNextBid) / 100).toFixed(2).replace('.', ',')}
                         disabled={submittingBid}
+                        aria-invalid={Boolean(bidError)}
+                        aria-describedby={bidError ? 'bid-amount-error' : undefined}
                         className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
 
                       <p className="text-xs text-muted-foreground">
                         Lance mínimo: {formatCurrency(minimumNextBid)}
                       </p>
-                    </div>
 
-                    {bidError && (
-                      <p role="alert" className="text-sm text-destructive">
-                        {bidError}
-                      </p>
-                    )}
+                      {bidError && (
+                        <p id="bid-amount-error" role="alert" className="text-sm text-destructive">
+                          {bidError}
+                        </p>
+                      )}
+                    </div>
 
                     {bidSuccess && (
                       <p role="status" className="text-sm font-medium text-foreground">
@@ -342,7 +376,7 @@ export function LotDetailsPage() {
                       size="lg"
                       disabled={submittingBid}
                     >
-                      {submittingBid ? 'Registrando lance...' : 'Confirmar lance'}
+                      {submittingBid ? 'Registrando lance...' : 'Revisar lance'}
                     </Button>
 
                     <p className="text-center text-xs text-muted-foreground">
@@ -373,6 +407,66 @@ export function LotDetailsPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={pendingBidAmountInCents !== null}
+        onOpenChange={(open) => {
+          if (!open && !submittingBid) {
+            setPendingBidAmountInCents(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-md border-border bg-card text-card-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">
+              Confirmar seu lance?
+            </AlertDialogTitle>
+
+            <AlertDialogDescription className="pt-2 leading-relaxed">
+              Você está prestes a participar do leilão da obra{' '}
+              <strong className="text-foreground">{lot.title}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="rounded-xl border border-[#C6A15B]/30 bg-muted/40 p-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Valor do lance
+            </p>
+
+            <p className="mt-3 font-serif text-4xl font-semibold">
+              {formatCurrency(String(pendingBidAmountInCents ?? 0))}
+            </p>
+          </div>
+
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Ao confirmar, o valor será reservado na sua carteira enquanto você estiver liderando o
+            leilão. Se outro participante superar seu lance, a reserva será liberada conforme as
+            regras da plataforma.
+          </p>
+
+          {wallet && (
+            <p className="text-sm text-muted-foreground">
+              Saldo disponível atual:{' '}
+              <strong className="text-foreground">{formatCurrency(wallet.availableInCents)}</strong>
+            </p>
+          )}
+
+          <AlertDialogFooter className="mt-3 gap-2 sm:gap-2">
+            <AlertDialogCancel disabled={submittingBid}>Voltar</AlertDialogCancel>
+
+            <AlertDialogAction
+              disabled={submittingBid}
+              className="bg-[#7A2234] text-white hover:bg-[#681C2B]"
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmBid();
+              }}
+            >
+              {submittingBid ? 'Registrando...' : 'Confirmar lance'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

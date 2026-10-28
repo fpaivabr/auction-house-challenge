@@ -7,7 +7,7 @@ import { authenticate } from '../../shared/middleware/authenticate.js';
 import { authorize } from '../../shared/middleware/authorize.js';
 import { getExternalProduct } from '../products/products.service.js';
 import { createLotSchema, publishLotSchema } from './lots.schemas.js';
-import { publishLot } from './lots.service.js';
+import { cancelLot, publishLot } from './lots.service.js';
 import { placeBidSchema } from '../bids/bids.schemas.js';
 import { placeBid } from '../bids/bids.service.js';
 
@@ -109,6 +109,21 @@ lotsRouter.post('/:id/publish', authenticate, authorize(UserRole.AUCTIONEER), as
     auctioneerId: res.locals.user.id,
     startsAt: new Date(result.data.startsAt),
     endsAt: new Date(result.data.endsAt),
+  });
+
+  res.status(200).json({ lot });
+});
+
+lotsRouter.post('/:id/cancel', authenticate, authorize(UserRole.AUCTIONEER), async (req, res) => {
+  const lotId = String(req.params.id);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lotId)) {
+    throw new AppError(400, 'Identificador de lote inválido.');
+  }
+
+  const lot = await cancelLot({
+    lotId,
+    auctioneerId: res.locals.user.id,
   });
 
   res.status(200).json({ lot });

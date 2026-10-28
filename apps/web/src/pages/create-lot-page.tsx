@@ -1,6 +1,7 @@
-﻿import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { ArrowLeft, Check, Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { UnsavedChangesGuard } from '@/components/feedback/unsaved-changes-guard';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/use-auth';
@@ -15,7 +16,7 @@ function toCents(value: string): number {
 export function CreateLotPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
-
+  const savedRef = useRef(false);
   const [search, setSearch] = useState('');
   const [products, setProducts] = useState<ExternalProduct[]>([]);
   const [selected, setSelected] = useState<ExternalProduct | null>(null);
@@ -51,10 +52,33 @@ export function CreateLotPage() {
     };
   }, [search]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!token || !selected || submitting) return;
+    if (!token || submitting) return;
+
+    if (!selected) {
+      setError('Selecione uma obra de arte antes de continuar.');
+      return;
+    }
+
+    if (!initialPrice.trim()) {
+      setError('Informe o preço inicial.');
+      return;
+    }
+
+    if (!increment.trim()) {
+      setError('Informe o incremento mínimo.');
+      return;
+    }
+
+    if (
+      !/^\d+([.,]\d{1,2})?$/.test(initialPrice.trim()) ||
+      !/^\d+([.,]\d{1,2})?$/.test(increment.trim())
+    ) {
+      setError('Informe valores monetários com até duas casas decimais.');
+      return;
+    }
 
     const priceInCents = toCents(initialPrice);
     const incrementInCents = toCents(increment);
@@ -81,6 +105,7 @@ export function CreateLotPage() {
         minimumIncrementInCents: incrementInCents,
       });
 
+      savedRef.current = true;
       navigate('/painel', { replace: true });
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível criar o lote.');
@@ -110,7 +135,7 @@ export function CreateLotPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} noValidate className="space-y-8">
         <section className="rounded-xl border border-border bg-card p-5 sm:p-7">
           <h2 className="mb-5 text-xl font-semibold">1. Selecionar produto</h2>
 
@@ -231,7 +256,7 @@ export function CreateLotPage() {
         )}
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" className="brand-button" disabled={!selected || submitting}>
+          <Button type="submit" className="brand-button" disabled={submitting}>
             {submitting ? 'Salvando...' : 'Salvar rascunho'}
           </Button>
 
@@ -240,6 +265,11 @@ export function CreateLotPage() {
           </Button>
         </div>
       </form>
+
+      <UnsavedChangesGuard
+        dirty={selected !== null || initialPrice.trim() !== '' || increment.trim() !== ''}
+        allowNavigationRef={savedRef}
+      />
     </main>
   );
 }

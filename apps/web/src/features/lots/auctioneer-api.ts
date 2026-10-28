@@ -92,3 +92,15 @@ export async function publishLot(token: string, lotId: string, input: PublishLot
     body: JSON.stringify(input),
   });
 }
+
+export async function cancelLot(token: string, lotId: string) {
+  return request<{
+    lot: {
+      id: string;
+      title: string;
+      status: 'CANCELLED';
+    };
+  }>(`/lots/${encodeURIComponent(lotId)}/cancel`, token, {
+    method: 'POST',
+  });
+}
