@@ -17,6 +17,9 @@ import { CreateLotPage } from '@/pages/create-lot-page';
 import { WalletPage } from '@/pages/wallet-page';
 import { LogoutPage } from '@/pages/logout-page';
 
+import { MyArrematesPage } from '@/pages/my-arremates-page';
+import { ReceiptPage } from '@/pages/receipt-page';
+
 type PlaceholderPageProps = {
   title: string;
   description: string;
@@ -70,6 +73,17 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/arremates"
+          element={
+            <ProtectedRoute role="BIDDER">
+              <MyArrematesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/comprovantes/:token" element={<ReceiptPage />} />
 
         <Route
           path="/painel"

@@ -1,6 +1,6 @@
 import { useEffect, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, History, LockKeyhole, Wallet as WalletIcon } from 'lucide-react';
+import { ArrowLeft, History, LockKeyhole, Trophy, Wallet as WalletIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/features/auth/use-auth';
@@ -198,10 +198,10 @@ export function WalletPage() {
                   value={depositAmount}
                   disabled={depositing}
                   onChange={(event) => {
-  setDepositAmount(event.target.value);
-  setDepositError(null);
-  setDepositSuccess(null);
-}}
+                    setDepositAmount(event.target.value);
+                    setDepositError(null);
+                    setDepositSuccess(null);
+                  }}
                   className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
@@ -261,6 +261,13 @@ export function WalletPage() {
 
           <Button asChild variant="outline" className="mt-5">
             <Link to="/">Explorar leilões</Link>
+          </Button>
+
+          <Button asChild variant="outline" className="mt-5 ml-3">
+            <Link to="/arremates">
+              <Trophy className="size-4" />
+              Meus arremates
+            </Link>
           </Button>
         </>
       )}

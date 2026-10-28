@@ -230,4 +230,49 @@ describe('Wallet and receipt API', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('should require authentication to list my receipts', async () => {
+    const response = await request(app).get('/api/receipts/mine');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('should list only receipts owned by the authenticated winner', async () => {
+    const response = await request(app)
+      .get('/api/receipts/mine')
+      .set('Authorization', `Bearer ${bidderToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.receipts).toHaveLength(1);
+
+    expect(response.body.receipts[0]).toMatchObject({
+      token: ids.receipt,
+      amountInCents: '15000',
+      currency: 'BRL',
+      status: 'COMPLETED',
+      lot: {
+        id: ids.lot,
+        title: 'Wallet Test Product',
+      },
+    });
+  });
+
+  it('should not show another participant receipts', async () => {
+    const response = await request(app)
+      .get('/api/receipts/mine')
+      .set('Authorization', `Bearer ${otherBidderToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.receipts).toEqual([]);
+  });
+
+  it('should reject auctioneers from the participant receipt list', async () => {
+    const auctioneerToken = await createAccessToken(ids.auctioneer);
+
+    const response = await request(app)
+      .get('/api/receipts/mine')
+      .set('Authorization', `Bearer ${auctioneerToken}`);
+
+    expect(response.status).toBe(403);
+  });
 });

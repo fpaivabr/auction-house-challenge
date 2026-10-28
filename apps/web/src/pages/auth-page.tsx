@@ -101,9 +101,9 @@ export function AuthPage({ mode }: AuthPageProps) {
                 maxLength={120}
                 value={name}
                 onChange={(event) => {
-  setName(event.target.value);
-  setError(null);
-}}
+                  setName(event.target.value);
+                  setError(null);
+                }}
                 className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Seu nome"
               />
@@ -118,9 +118,9 @@ export function AuthPage({ mode }: AuthPageProps) {
               required
               value={email}
               onChange={(event) => {
-  setEmail(event.target.value);
-  setError(null);
-}}
+                setEmail(event.target.value);
+                setError(null);
+              }}
               className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="seu@email.com"
             />
@@ -135,9 +135,9 @@ export function AuthPage({ mode }: AuthPageProps) {
               minLength={isRegister ? 8 : 1}
               value={password}
               onChange={(event) => {
-  setPassword(event.target.value);
-  setError(null);
-}}
+                setPassword(event.target.value);
+                setError(null);
+              }}
               className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder={isRegister ? 'Mínimo de 8 caracteres' : 'Sua senha'}
             />

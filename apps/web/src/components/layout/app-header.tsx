@@ -9,6 +9,7 @@ import {
   Menu,
   Moon,
   Sun,
+  Trophy,
   UserRound,
   Wallet,
 } from 'lucide-react';
@@ -65,7 +66,7 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
   const themeLabel = theme === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro';
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md print:hidden">
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
@@ -85,6 +86,11 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
           <NavLink to="/" end className={({ isActive }) => navClass(isActive)}>
             Leilões
           </NavLink>
+          {!loading && user?.role === 'BIDDER' && (
+            <NavLink to="/arremates" className={({ isActive }) => navClass(isActive)}>
+              Meus arremates
+            </NavLink>
+          )}
 
           {!loading && user && (
             <NavLink to={accountDestination} className={({ isActive }) => navClass(isActive)}>
@@ -121,17 +127,6 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
                       {user.email}
                     </span>
                   </DropdownMenuLabel>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem onSelect={() => navigate(accountDestination)}>
-                    {isAuctioneer ? (
-                      <LayoutDashboard className="size-4" />
-                    ) : (
-                      <Wallet className="size-4" />
-                    )}
-                    {accountLabel}
-                  </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 
@@ -182,8 +177,9 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
                 <Link
                   to="/"
                   onClick={closeMenu}
-                  className="rounded-md px-3 py-3 text-sm font-medium hover:bg-accent"
+                  className="flex items-center gap-2 rounded-md px-3 py-3 text-sm font-medium hover:bg-accent"
                 >
+                  <Gavel className="size-4" />
                   Leilões
                 </Link>
 
@@ -202,6 +198,17 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
                         )}
                         {accountLabel}
                       </Link>
+
+                      {user.role === 'BIDDER' && (
+                        <Link
+                          to="/arremates"
+                          onClick={closeMenu}
+                          className="flex items-center gap-2 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                        >
+                          <Trophy className="size-4" />
+                          Meus arremates
+                        </Link>
+                      )}
 
                       <div className="my-2 border-t border-border" />
 
