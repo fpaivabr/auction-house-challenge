@@ -20,6 +20,8 @@ import { LogoutPage } from '@/pages/logout-page';
 import { MyArrematesPage } from '@/pages/my-arremates-page';
 import { ReceiptPage } from '@/pages/receipt-page';
 
+import { AuditPage } from '@/pages/audit-page';
+
 type PlaceholderPageProps = {
   title: string;
   description: string;
@@ -103,17 +105,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/painel/auditoria"
-          element={
-            <ProtectedRoute role="AUCTIONEER">
-              <PlaceholderPage
-                title="Auditoria"
-                description="Verificação da integridade do histórico de lances."
-              />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/lotes/:id/auditoria" element={<AuditPage />} />
 
         <Route
           path="*"

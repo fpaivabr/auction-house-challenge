@@ -404,6 +404,13 @@ export function LotDetailsPage() {
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#C6A15B]" />
               Lances sujeitos às validações e regras financeiras da plataforma.
             </p>
+
+            <Button asChild variant="outline" className="w-full">
+              <Link to={`/lotes/${lot.id}/auditoria`}>
+                <ShieldCheck className="size-4" />
+                Auditar histórico de lances
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

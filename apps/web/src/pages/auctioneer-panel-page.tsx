@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type SubmitEvent } from 'react';
 import { UnsavedChangesGuard } from '@/components/feedback/unsaved-changes-guard';
 import { Link } from 'react-router-dom';
-import {
-  ArrowUpRight,
-  Ban,
-  Gavel,
-  LayoutDashboard,
-  PlusCircle,
-  RefreshCw,
-  ShieldCheck,
-} from 'lucide-react';
+import { ArrowUpRight, Ban, Gavel, LayoutDashboard, PlusCircle, RefreshCw } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -338,14 +330,6 @@ export function AuctioneerPanelPage() {
             <PlusCircle className="size-4" />
             Criar lote
           </Link>
-
-          <Link
-            to="/painel/auditoria"
-            className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-accent"
-          >
-            <ShieldCheck className="size-4" />
-            Auditoria
-          </Link>
         </nav>
       </aside>
 
@@ -368,12 +352,6 @@ export function AuctioneerPanelPage() {
             </Link>
           </Button>
         </div>
-
-        {cancelSuccess && (
-          <p role="status" className="rounded-lg border border-border bg-card p-4 text-sm">
-            {cancelSuccess}
-          </p>
-        )}
 
         {cancelSuccess && (
           <p role="status" className="rounded-lg border border-border bg-card p-4 text-sm">
