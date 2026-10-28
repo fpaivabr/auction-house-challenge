@@ -119,6 +119,8 @@ export function AuthPage({ mode }: AuthPageProps) {
 
             <input
               type="email"
+              inputMode="email"
+              maxLength={255}
               autoComplete="email"
               required
               value={email}
@@ -134,6 +136,9 @@ export function AuthPage({ mode }: AuthPageProps) {
           <div className="space-y-2">
             <label htmlFor="auth-password" className="block text-sm font-medium">
               Senha
+              {isRegister && (
+                <span className="ml-2 font-normal text-muted-foreground">(8 a 128 caracteres)</span>
+              )}
             </label>
 
             <div className="relative">
@@ -143,6 +148,7 @@ export function AuthPage({ mode }: AuthPageProps) {
                 autoComplete={isRegister ? 'new-password' : 'current-password'}
                 required
                 minLength={isRegister ? 8 : 1}
+                maxLength={128}
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value);

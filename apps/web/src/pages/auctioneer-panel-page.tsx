@@ -16,7 +16,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/features/auth/use-auth';
-import { cancelLot, getMyLots, publishLot, type ManagedLot } from '@/features/lots/auctioneer-api';
+import {
+  cancelLot,
+  getAuctioneerSummary,
+  getMyLots,
+  publishLot,
+  type AuctioneerSummary,
+  type ManagedLot,
+} from '@/features/lots/auctioneer-api';
 import { formatCurrency, formatDate } from '@/features/lots/lots-api';
 
 const statusNames: Record<ManagedLot['status'], string> = {
@@ -229,6 +236,7 @@ function PublishForm({
 export function AuctioneerPanelPage() {
   const { token } = useAuth();
   const [lots, setLots] = useState<ManagedLot[]>([]);
+  const [summary, setSummary] = useState<AuctioneerSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -256,10 +264,11 @@ export function AuctioneerPanelPage() {
 
     let active = true;
 
-    getMyLots(token)
-      .then((data) => {
+    Promise.all([getMyLots(token), getAuctioneerSummary(token)])
+      .then(([data, financialSummary]) => {
         if (active) {
           setLots(data);
+          setSummary(financialSummary);
           setError(null);
         }
       })
@@ -298,6 +307,7 @@ export function AuctioneerPanelPage() {
       }));
 
       setCancelSuccess(`O lote "${lot.title}" foi cancelado com sucesso.`);
+      refresh();
     } catch (cause: unknown) {
       setCancelError({
         lotId: lot.id,
@@ -357,6 +367,40 @@ export function AuctioneerPanelPage() {
           <p role="status" className="rounded-lg border border-border bg-card p-4 text-sm">
             {cancelSuccess}
           </p>
+        )}
+
+        {!loading && !error && summary && (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <section className="rounded-xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Total recebido</p>
+
+              <p className="mt-2 font-serif text-3xl font-semibold">
+                {formatCurrency(summary.totalReceivedInCents)}
+              </p>
+
+              <p className="mt-2 text-xs text-muted-foreground">
+                Arremates com pagamento simulado concluído.
+              </p>
+            </section>
+
+            <section className="rounded-xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Arremates concluídos</p>
+
+              <p className="mt-2 font-serif text-3xl font-semibold">{summary.completedSales}</p>
+
+              <p className="mt-2 text-xs text-muted-foreground">Lotes com liquidação confirmada.</p>
+            </section>
+
+            <section className="rounded-xl border border-border bg-card p-5">
+              <p className="text-sm text-muted-foreground">Lotes em andamento</p>
+
+              <p className="mt-2 font-serif text-3xl font-semibold">{summary.openLots}</p>
+
+              <p className="mt-2 text-xs text-muted-foreground">
+                {summary.totalLots} lote(s) cadastrado(s) no total.
+              </p>
+            </section>
+          </div>
         )}
 
         {loading ? (
@@ -450,6 +494,32 @@ export function AuctioneerPanelPage() {
                     )}
                   </div>
                 </div>
+
+                {lot.status === 'CLOSED' && (
+                  <div className="mt-5 rounded-lg border border-border bg-muted/30 p-4 text-sm">
+                    {(() => {
+                      const result = summary?.results.find((entry) => entry.lotId === lot.id);
+
+                      return result ? (
+                        <>
+                          <p className="font-semibold text-foreground">Arremate concluído</p>
+
+                          <p className="mt-2">
+                            Valor recebido: <strong>{formatCurrency(result.amountInCents)}</strong>
+                          </p>
+
+                          <p className="mt-1 text-muted-foreground">
+                            Liquidado em {formatDate(result.settledAt)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground">
+                          Nenhum arremate confirmado para este lote.
+                        </p>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {lot.status === 'DRAFT' && token && (
                   <PublishForm

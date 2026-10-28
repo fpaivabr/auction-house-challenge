@@ -217,14 +217,20 @@ export function CreateLotPage() {
             <label className="block space-y-2 text-sm">
               <span className="font-medium">Preço inicial (R$)</span>
               <input
-                type="number"
-                min="0.01"
-                max="10000000"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                maxLength={12}
                 required
                 value={initialPrice}
-                onChange={(event) => setInitialPrice(event.target.value)}
-                placeholder="100.00"
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (/^\d*(?:[.,]\d{0,2})?$/.test(value)) {
+                    setInitialPrice(value);
+                    setError(null);
+                  }
+                }}
+                placeholder="Ex.: 250000,00"
                 className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>
@@ -232,14 +238,20 @@ export function CreateLotPage() {
             <label className="block space-y-2 text-sm">
               <span className="font-medium">Incremento mínimo (R$)</span>
               <input
-                type="number"
-                min="0.01"
-                max="10000000"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                maxLength={12}
                 required
                 value={increment}
-                onChange={(event) => setIncrement(event.target.value)}
-                placeholder="10.00"
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (/^\d*(?:[.,]\d{0,2})?$/.test(value)) {
+                    setIncrement(value);
+                    setError(null);
+                  }
+                }}
+                placeholder="Ex.: 10000,00"
                 className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </label>

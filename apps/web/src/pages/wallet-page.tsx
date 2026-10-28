@@ -80,8 +80,8 @@ export function WalletPage() {
     const [whole, fraction = ''] = normalized.split('.');
     const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
 
-    if (!Number.isSafeInteger(cents) || cents < 100 || cents > 1_000_000) {
-      setDepositError('Informe um valor entre R$ 1,00 e R$ 10.000,00.');
+    if (!Number.isSafeInteger(cents) || cents < 100 || cents > 100_000_000) {
+      setDepositError('Informe um valor entre R$ 1,00 e R$ 1.000.000,00.');
       return;
     }
 
@@ -206,7 +206,10 @@ export function WalletPage() {
                   value={depositAmount}
                   disabled={depositing}
                   onChange={(event) => {
-                    setDepositAmount(event.target.value);
+                    const value = event.target.value;
+                    if (/^\d*(?:[.,]\d{0,2})?$/.test(value)) {
+                      setDepositAmount(value);
+                    }
                     setDepositError(null);
                     setDepositSuccess(null);
                   }}

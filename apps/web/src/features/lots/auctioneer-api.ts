@@ -10,6 +10,7 @@ export type ExternalProduct = {
   description: string;
   thumbnail?: string;
   images?: string[];
+  alreadyListed: boolean;
 };
 
 type ProductsResponse = {
@@ -28,6 +29,19 @@ export type CreateLotInput = {
 export type PublishLotInput = {
   startsAt: string;
   endsAt: string;
+};
+
+export type AuctioneerSummary = {
+  totalLots: number;
+  openLots: number;
+  closedLots: number;
+  completedSales: number;
+  totalReceivedInCents: string;
+  results: {
+    lotId: string;
+    amountInCents: string;
+    settledAt: string;
+  }[];
 };
 
 async function request<T>(
@@ -66,7 +80,9 @@ async function request<T>(
 export async function searchProducts(search: string) {
   const query = new URLSearchParams();
 
-  if (search.trim()) query.set('search', search.trim());
+  if (search.trim()) {
+    query.set('search', search.trim());
+  }
 
   const suffix = query.size ? `?${query.toString()}` : '';
 
@@ -103,4 +119,10 @@ export async function cancelLot(token: string, lotId: string) {
   }>(`/lots/${encodeURIComponent(lotId)}/cancel`, token, {
     method: 'POST',
   });
+}
+
+export async function getAuctioneerSummary(token: string): Promise<AuctioneerSummary> {
+  const response = await request<{ summary: AuctioneerSummary }>('/lots/mine/summary', token);
+
+  return response.summary;
 }

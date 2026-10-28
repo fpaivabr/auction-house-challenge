@@ -17,7 +17,7 @@ walletsRouter.use(authenticate);
 
 const depositSchema = z
   .object({
-    amountInCents: z.number().int().min(100).max(1_000_000).safe(),
+    amountInCents: z.number().int().min(100).max(100_000_000).safe(),
   })
   .strict();
 
@@ -25,7 +25,7 @@ walletsRouter.post('/me/deposits', authorize(UserRole.BIDDER), async (req, res) 
   const parsed = depositSchema.safeParse(req.body);
 
   if (!parsed.success) {
-    throw new AppError(400, 'Informe um depósito entre R$ 1,00 e R$ 10.000,00.');
+    throw new AppError(400, 'Informe um depósito entre R$ 1,00 e R$ 1.000.000,00.');
   }
 
   const userId: string = res.locals.user.id;

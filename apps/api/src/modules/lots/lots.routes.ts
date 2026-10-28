@@ -1,6 +1,6 @@
 ﻿import { Router } from 'express';
 
-import { LotStatus, UserRole } from '../../generated/prisma/client.js';
+import { LotStatus, Prisma, SettlementStatus, UserRole } from '../../generated/prisma/client.js';
 import { prisma } from '../../shared/database/prisma.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { authenticate } from '../../shared/middleware/authenticate.js';
@@ -58,6 +58,7 @@ lotsRouter.post('/:id/bids', authenticate, authorize(UserRole.BIDDER), async (re
     bidderId: res.locals.user.id,
     amountInCents: BigInt(result.data.amountInCents),
   });
+
   publishLotUpdate(lotId);
 
   res.status(201).json({ bid });
@@ -72,25 +73,51 @@ lotsRouter.post('/', authenticate, authorize(UserRole.AUCTIONEER), async (req, r
 
   const { productId, initialPriceInCents, minimumIncrementInCents } = result.data;
 
+  const existingLot = await prisma.lot.findFirst({
+    where: {
+      externalSource: 'cleveland',
+      externalItemId: String(productId),
+    },
+    select: { id: true },
+  });
+
+  if (existingLot) {
+    throw new AppError(
+      409,
+      'Esta obra de arte já foi cadastrada em um lote e não pode ser cadastrada novamente.',
+    );
+  }
+
   const product = await getExternalProduct(productId);
 
-  const lot = await prisma.lot.create({
-    data: {
-      auctioneerId: res.locals.user.id,
-      externalItemId: String(product.id),
-      externalSource: 'cleveland',
-      title: product.title,
-      description: product.description,
-      imageUrl: product.thumbnail ?? product.images?.[0] ?? null,
-      initialPriceInCents: BigInt(initialPriceInCents),
-      minimumIncrementInCents: BigInt(minimumIncrementInCents),
-      status: LotStatus.DRAFT,
-    },
-  });
+  try {
+    const lot = await prisma.lot.create({
+      data: {
+        auctioneerId: res.locals.user.id,
+        externalItemId: String(product.id),
+        externalSource: 'cleveland',
+        title: product.title,
+        description: product.description,
+        imageUrl: product.thumbnail ?? product.images?.[0] ?? null,
+        initialPriceInCents: BigInt(initialPriceInCents),
+        minimumIncrementInCents: BigInt(minimumIncrementInCents),
+        status: LotStatus.DRAFT,
+      },
+    });
 
-  res.status(201).json({
-    lot: serializeLot(lot),
-  });
+    res.status(201).json({
+      lot: serializeLot(lot),
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new AppError(
+        409,
+        'Esta obra de arte já foi cadastrada em um lote e não pode ser cadastrada novamente.',
+      );
+    }
+
+    throw error;
+  }
 });
 
 lotsRouter.post('/:id/publish', authenticate, authorize(UserRole.AUCTIONEER), async (req, res) => {
@@ -145,6 +172,86 @@ lotsRouter.get('/', async (_req, res) => {
   });
 });
 
+lotsRouter.get(
+  '/participations/mine',
+  authenticate,
+  authorize(UserRole.BIDDER),
+  async (_req, res) => {
+    const bidderId: string = res.locals.user.id;
+
+    const lots = await prisma.lot.findMany({
+      where: {
+        bids: {
+          some: { bidderId },
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        imageUrl: true,
+        status: true,
+        currentPriceInCents: true,
+        endsAt: true,
+        winningBidderId: true,
+        bids: {
+          where: { bidderId },
+          orderBy: [{ amountInCents: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: {
+            amountInCents: true,
+          },
+        },
+        settlement: {
+          select: {
+            status: true,
+          },
+        },
+        receipt: {
+          select: {
+            publicToken: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+    });
+
+    const participations = lots.map((lot) => {
+      let outcome: 'LEADING' | 'OUTBID' | 'WON' | 'LOST' | 'PENDING' | 'REVERSED';
+
+      if (lot.status === LotStatus.CLOSED) {
+        if (lot.winningBidderId !== bidderId) {
+          outcome = 'LOST';
+        } else if (lot.settlement?.status === SettlementStatus.COMPLETED) {
+          outcome = 'WON';
+        } else if (lot.settlement?.status === SettlementStatus.REVERSED) {
+          outcome = 'REVERSED';
+        } else {
+          outcome = 'PENDING';
+        }
+      } else {
+        outcome = lot.winningBidderId === bidderId ? 'LEADING' : 'OUTBID';
+      }
+
+      return {
+        lot: {
+          id: lot.id,
+          title: lot.title,
+          imageUrl: lot.imageUrl,
+          status: lot.status,
+          currentPriceInCents: lot.currentPriceInCents?.toString() ?? null,
+          endsAt: lot.endsAt,
+        },
+        highestBidInCents: lot.bids[0]?.amountInCents.toString() ?? null,
+        outcome,
+        receiptToken: outcome === 'WON' ? (lot.receipt?.publicToken ?? null) : null,
+      };
+    });
+
+    res.status(200).json({ participations });
+  },
+);
+
 lotsRouter.get('/mine', authenticate, authorize(UserRole.AUCTIONEER), async (_req, res) => {
   const lots = await prisma.lot.findMany({
     where: {
@@ -158,6 +265,57 @@ lotsRouter.get('/mine', authenticate, authorize(UserRole.AUCTIONEER), async (_re
 
   res.status(200).json({
     lots: lots.map(serializeLot),
+  });
+});
+
+lotsRouter.get('/mine/summary', authenticate, authorize(UserRole.AUCTIONEER), async (_req, res) => {
+  const auctioneerId: string = res.locals.user.id;
+
+  const [statusGroups, totals, settlements] = await Promise.all([
+    prisma.lot.groupBy({
+      by: ['status'],
+      where: { auctioneerId },
+      _count: { _all: true },
+    }),
+    prisma.settlement.aggregate({
+      where: {
+        auctioneerId,
+        status: SettlementStatus.COMPLETED,
+      },
+      _count: { _all: true },
+      _sum: { amountInCents: true },
+    }),
+    prisma.settlement.findMany({
+      where: {
+        auctioneerId,
+        status: SettlementStatus.COMPLETED,
+      },
+      select: {
+        lotId: true,
+        amountInCents: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    }),
+  ]);
+
+  const countStatus = (status: LotStatus): number =>
+    statusGroups.find((group) => group.status === status)?._count._all ?? 0;
+
+  res.status(200).json({
+    summary: {
+      totalLots: statusGroups.reduce((total, group) => total + group._count._all, 0),
+      openLots: countStatus(LotStatus.OPEN),
+      closedLots: countStatus(LotStatus.CLOSED),
+      completedSales: totals._count._all,
+      totalReceivedInCents: (totals._sum.amountInCents ?? 0n).toString(),
+      results: settlements.map((settlement) => ({
+        lotId: settlement.lotId,
+        amountInCents: settlement.amountInCents.toString(),
+        settledAt: settlement.createdAt,
+      })),
+    },
   });
 });
 

@@ -1,6 +1,15 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Gavel, Printer, ReceiptText, RefreshCw, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Gavel,
+  Printer,
+  ReceiptText,
+  RefreshCw,
+  ShieldCheck,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDate } from '@/features/lots/lots-api';
@@ -13,6 +22,7 @@ export function ReceiptPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -46,6 +56,17 @@ export function ReceiptPage() {
     setLoading(true);
     setError(null);
     setReloadKey((current) => current + 1);
+  }
+
+  async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyFeedback('Link do comprovante copiado!');
+    } catch {
+      setCopyFeedback(
+        'Não foi possível copiar automaticamente. Copie o endereço na barra do navegador.',
+      );
+    }
   }
 
   if (loading) {
@@ -92,11 +113,28 @@ export function ReceiptPage() {
           Meus arremates
         </Link>
 
-        <Button type="button" variant="outline" onClick={() => window.print()}>
-          <Printer className="size-4" />
-          Imprimir ou salvar como PDF
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => void handleCopyLink()}>
+            {copyFeedback === 'Link do comprovante copiado!' ? (
+              <Check className="size-4" />
+            ) : (
+              <Copy className="size-4" />
+            )}
+            {copyFeedback === 'Link do comprovante copiado!' ? 'Link copiado' : 'Copiar link'}
+          </Button>
+
+          <Button type="button" variant="outline" onClick={() => window.print()}>
+            <Printer className="size-4" />
+            Imprimir ou salvar como PDF
+          </Button>
+        </div>
       </div>
+
+      {copyFeedback && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground print:hidden">
+          {copyFeedback}
+        </p>
+      )}
 
       <article className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-10 print:rounded-none print:border-0 print:bg-white print:p-0 print:text-black print:shadow-none">
         <div className="flex flex-wrap items-start justify-between gap-5 border-b border-border pb-7">

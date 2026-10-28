@@ -86,7 +86,7 @@ model Lot {
 
   @@index([status, endsAt])
   @@index([auctioneerId, createdAt])
-  @@index([externalSource, externalItemId])
+  @@unique([externalSource, externalItemId])
 }
 
 model Bid {

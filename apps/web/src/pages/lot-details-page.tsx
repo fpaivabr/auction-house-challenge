@@ -587,7 +587,10 @@ export function LotDetailsPage() {
                         required
                         value={bidAmount}
                         onChange={(event) => {
-                          setBidAmount(event.target.value);
+                          const value = event.target.value;
+                          if (/^\d*(?:[.,]\d{0,2})?$/.test(value)) {
+                            setBidAmount(value);
+                          }
                           setBidError(null);
                         }}
                         placeholder={(Number(minimumNextBid) / 100).toFixed(2).replace('.', ',')}
