@@ -10,6 +10,7 @@ import { createLotSchema, publishLotSchema } from './lots.schemas.js';
 import { cancelLot, publishLot } from './lots.service.js';
 import { placeBidSchema } from '../bids/bids.schemas.js';
 import { placeBid } from '../bids/bids.service.js';
+import { publishLotUpdate, subscribeToLotUpdates } from './lot-events.js';
 
 export const lotsRouter = Router();
 
@@ -57,6 +58,7 @@ lotsRouter.post('/:id/bids', authenticate, authorize(UserRole.BIDDER), async (re
     bidderId: res.locals.user.id,
     amountInCents: BigInt(result.data.amountInCents),
   });
+  publishLotUpdate(lotId);
 
   res.status(201).json({ bid });
 });
@@ -156,6 +158,84 @@ lotsRouter.get('/mine', authenticate, authorize(UserRole.AUCTIONEER), async (_re
 
   res.status(200).json({
     lots: lots.map(serializeLot),
+  });
+});
+
+lotsRouter.get('/:id/participation', authenticate, authorize(UserRole.BIDDER), async (req, res) => {
+  const lotId = String(req.params.id);
+  const bidderId: string = res.locals.user.id;
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lotId)) {
+    throw new AppError(400, 'Identificador de lote inválido.');
+  }
+
+  const lot = await prisma.lot.findUnique({
+    where: { id: lotId },
+    select: {
+      status: true,
+      winningBidderId: true,
+    },
+  });
+
+  if (!lot || !visibleStatuses.includes(lot.status)) {
+    throw new AppError(404, 'Lote não encontrado.');
+  }
+
+  const highestBid = await prisma.bid.findFirst({
+    where: {
+      lotId,
+      bidderId,
+    },
+    orderBy: [{ amountInCents: 'desc' }, { createdAt: 'desc' }],
+    select: {
+      amountInCents: true,
+    },
+  });
+
+  res.status(200).json({
+    participation: {
+      hasBid: highestBid !== null,
+      isLeading: highestBid !== null && lot.winningBidderId === bidderId,
+      highestBidInCents: highestBid?.amountInCents.toString() ?? null,
+    },
+  });
+});
+
+lotsRouter.get('/:id/events', async (req, res) => {
+  const lotId = String(req.params.id);
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lotId)) {
+    throw new AppError(400, 'Identificador de lote inválido.');
+  }
+
+  const lot = await prisma.lot.findUnique({
+    where: { id: lotId },
+    select: { status: true },
+  });
+
+  if (!lot || !visibleStatuses.includes(lot.status)) {
+    throw new AppError(404, 'Lote não encontrado.');
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  res.flushHeaders();
+  res.write('event: ready\ndata: {}\n\n');
+
+  const unsubscribe = subscribeToLotUpdates(lotId, () => {
+    res.write('event: lot-updated\ndata: {}\n\n');
+  });
+
+  const interval = setInterval(() => {
+    res.write('event: sync\ndata: {}\n\n');
+  }, 15000);
+
+  res.on('close', () => {
+    clearInterval(interval);
+    unsubscribe();
   });
 });
 

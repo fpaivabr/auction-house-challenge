@@ -25,6 +25,14 @@ export function WalletPage() {
   const [depositError, setDepositError] = useState<string | null>(null);
   const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
 
+  const transactionLabels: Record<string, string> = {
+    INITIAL_CREDIT: 'Crédito inicial',
+    ADJUSTMENT: 'Depósito simulado',
+    AUCTION_PAYMENT: 'Pagamento de arremate',
+    AUCTION_RECEIPT: 'Recebimento de leilão',
+    REFUND: 'Reembolso',
+  };
+
   useEffect(() => {
     if (!token) return;
 
@@ -242,7 +250,9 @@ export function WalletPage() {
                     className="flex flex-wrap items-center justify-between gap-3 py-4"
                   >
                     <div>
-                      <p className="font-medium">{transaction.type.replaceAll('_', ' ')}</p>
+                      <p className="font-medium">
+                        {transactionLabels[transaction.type] ?? 'Outra movimentação'}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {formatDate(transaction.createdAt)}
                       </p>

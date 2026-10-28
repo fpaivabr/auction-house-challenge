@@ -26,7 +26,7 @@ const statuses = {
     border: 'border-destructive/40 bg-destructive/10',
   },
   PENDING: {
-    title: 'Checkpoint pendente',
+    title: 'Registro externo pendente',
     description: 'O histórico está consistente, mas falta ancoragem externa.',
     border: 'border-[#C6A15B]/40 bg-[#C6A15B]/10',
   },
@@ -148,7 +148,7 @@ export function AuditPage() {
             </div>
 
             <div className="rounded-xl border border-border bg-card p-5">
-              <p className="text-sm text-muted-foreground">Checkpoint externo</p>
+              <p className="text-sm text-muted-foreground">Registro externo de integridade</p>
               <p className="mt-2 font-serif text-3xl font-semibold">
                 {data.integrity.checkpointSequence ?? '—'}
               </p>
@@ -239,8 +239,8 @@ export function AuditPage() {
 
             <p className="text-sm leading-relaxed text-muted-foreground">
               A verificação compara o histórico com seus registros criptográficos e, quando
-              disponível, com o checkpoint externo. Os identificadores dos licitantes são
-              pseudônimos e não revelam seus dados pessoais.
+              disponível, com o registro externo de integridade. Os identificadores dos licitantes
+              são pseudônimos e não revelam seus dados pessoais.
             </p>
           </div>
         </div>

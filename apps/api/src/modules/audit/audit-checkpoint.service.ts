@@ -41,13 +41,13 @@ export async function readLatestAuditCheckpoint(directory: string) {
     .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
 
   if (sequences.length === 0) {
-    throw new Error('Nenhum checkpoint de auditoria encontrado.');
+    throw new Error('Nenhum registro externo de integridade encontrado.');
   }
 
   const sequence = sequences[0];
 
   if (sequence === undefined) {
-    throw new Error('Nenhum checkpoint de auditoria encontrado.');
+    throw new Error('Nenhum registro externo de integridade encontrado.');
   }
 
   return readAuditAnchor(checkpointPath(directory, sequence));
@@ -77,7 +77,9 @@ export async function synchronizeAuditCheckpoints(directory: string) {
   const anchoredEntry = entries.find((entry) => entry.sequence === latest.sequence);
 
   if (!anchoredEntry || anchoredEntry.hash !== latest.hash) {
-    throw new Error('Checkpoint existente não corresponde ao histórico auditado.');
+    throw new Error(
+      'Registro externo de integridade existente não corresponde ao histórico auditado.',
+    );
   }
 
   let created = 0;
@@ -118,7 +120,7 @@ export async function verifyAuditCheckpoints(directory: string) {
     return {
       valid: false,
       anchoredSequence: null,
-      error: 'Checkpoint ausente ou inválido.',
+      error: 'Registro externo de integridade ausente ou inválido.',
     };
   }
 
@@ -130,7 +132,7 @@ export async function verifyAuditCheckpoints(directory: string) {
     return {
       valid: false,
       anchoredSequence: latest.sequence.toString(),
-      error: 'Checkpoint não corresponde ao histórico auditado.',
+      error: 'Registro externo de integridade não corresponde ao histórico auditado.',
     };
   }
 

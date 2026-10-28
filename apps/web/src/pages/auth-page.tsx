@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Gavel } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Gavel } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { login, register } from '@/features/auth/auth-api';
@@ -19,12 +19,15 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+
     if (submitting) return;
+
     if (isRegister && name.trim().length < 2) {
       setError('Informe seu nome com pelo menos dois caracteres.');
       return;
@@ -93,6 +96,7 @@ export function AuthPage({ mode }: AuthPageProps) {
           {isRegister && (
             <label className="block space-y-2 text-sm font-medium">
               <span>Nome completo</span>
+
               <input
                 type="text"
                 autoComplete="name"
@@ -112,6 +116,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
           <label className="block space-y-2 text-sm font-medium">
             <span>E-mail</span>
+
             <input
               type="email"
               autoComplete="email"
@@ -126,22 +131,43 @@ export function AuthPage({ mode }: AuthPageProps) {
             />
           </label>
 
-          <label className="block space-y-2 text-sm font-medium">
-            <span>Senha</span>
-            <input
-              type="password"
-              autoComplete={isRegister ? 'new-password' : 'current-password'}
-              required
-              minLength={isRegister ? 8 : 1}
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setError(null);
-              }}
-              className="h-11 w-full rounded-md border border-input bg-background px-3 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              placeholder={isRegister ? 'Mínimo de 8 caracteres' : 'Sua senha'}
-            />
-          </label>
+          <div className="space-y-2">
+            <label htmlFor="auth-password" className="block text-sm font-medium">
+              Senha
+            </label>
+
+            <div className="relative">
+              <input
+                id="auth-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                required
+                minLength={isRegister ? 8 : 1}
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setError(null);
+                }}
+                className="h-11 w-full rounded-md border border-input bg-background px-3 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder={isRegister ? 'Mínimo de 8 caracteres' : 'Sua senha'}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword((previous) => !previous)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-pressed={showPassword}
+                title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute inset-y-0 right-0 z-10 flex w-11 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-5" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-5" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+          </div>
 
           {error && (
             <p
@@ -154,6 +180,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
           <Button type="submit" size="lg" disabled={submitting} className="brand-button w-full">
             {submitting ? 'Aguarde...' : isRegister ? 'Criar minha conta' : 'Entrar'}
+
             {!submitting && <ArrowRight className="size-4" />}
           </Button>
         </form>

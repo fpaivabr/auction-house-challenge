@@ -41,7 +41,7 @@ auditRouter.get('/verify', authenticate, authorize(UserRole.AUCTIONEER), async (
       checkpoint: {
         enabled: false,
         verified: false,
-        error: 'Armazenamento de checkpoints não configurado.',
+        error: 'Armazenamento externo de integridade não configurado.',
       },
     });
     return;
@@ -120,15 +120,16 @@ auditRouter.get('/lots/:id', async (req, res) => {
 
       if (pendingEntries === '0') {
         status = 'VALID';
-        message = 'Histórico de lances e checkpoint externo verificados.';
+        message = 'Histórico de lances e registro externo de integridade verificados.';
       } else {
         status = 'PENDING';
-        message = 'Histórico consistente, mas existem eventos aguardando checkpoint externo.';
+        message =
+          'Histórico consistente, mas existem eventos aguardando registro externo de integridade.';
       }
     } else {
       status = checkpoint.error?.includes('não corresponde') ? 'INVALID' : 'UNVERIFIED';
 
-      message = checkpoint.error ?? 'Não foi possível verificar o checkpoint externo.';
+      message = checkpoint.error ?? 'Não foi possível verificar o registro externo de integridade.';
     }
   }
 

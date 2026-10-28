@@ -1,5 +1,5 @@
 import { useEffect, useState, type SubmitEvent } from 'react';
-import { ArrowLeft, CalendarClock, Gavel, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Clock3, Gavel, History, ShieldCheck } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
@@ -13,15 +13,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getPublicLotAudit, type PublicLotAudit } from '@/features/audit/audit-api';
 import { useAuth } from '@/features/auth/use-auth';
 import {
   formatCurrency,
   formatDate,
   getLot,
+  getLotParticipation,
   lotStatusLabel,
   type Lot,
+  type LotParticipation,
 } from '@/features/lots/lots-api';
 import { getWallet, placeBid, type Wallet } from '@/features/wallet/wallet-api';
+
+function formatCountdown(milliseconds: number): string {
+  const totalSeconds = Math.ceil(Math.max(0, milliseconds) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
 
 export function LotDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,13 +42,23 @@ export function LotDetailsPage() {
   const [lot, setLot] = useState<Lot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [liveStatus, setLiveStatus] = useState<'connecting' | 'connected' | 'reconnecting'>(
+    'connecting',
+  );
 
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [participation, setParticipation] = useState<LotParticipation | null>(null);
+  const [history, setHistory] = useState<PublicLotAudit['bids'] | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
   const [bidAmount, setBidAmount] = useState('');
   const [submittingBid, setSubmittingBid] = useState(false);
   const [bidError, setBidError] = useState<string | null>(null);
-  const [bidSuccess, setBidSuccess] = useState<string | null>(null);
   const [pendingBidAmountInCents, setPendingBidAmountInCents] = useState<number | null>(null);
+
+  const deadlineReached =
+    lot?.status === 'OPEN' && Boolean(lot.endsAt) && now >= new Date(lot.endsAt!).getTime();
 
   useEffect(() => {
     if (!id) return;
@@ -65,28 +87,165 @@ export function LotDetailsPage() {
   }, [id]);
 
   useEffect(() => {
-    if (!token || user?.role !== 'BIDDER') {
-      return;
-    }
+    if (!token || user?.role !== 'BIDDER') return;
 
     let active = true;
 
-    getWallet(token)
+    void getWallet(token)
       .then((result) => {
-        if (active) {
-          setWallet(result);
-        }
+        if (active) setWallet(result);
       })
       .catch(() => {
-        if (active) {
-          setWallet(null);
-        }
+        if (active) setWallet(null);
       });
 
     return () => {
       active = false;
     };
   }, [token, user?.role]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const source = new EventSource(`/api/lots/${encodeURIComponent(id)}/events`);
+    let active = true;
+    let refreshSequence = 0;
+
+    function refreshLiveData() {
+      if (!id) return;
+
+      const sequence = ++refreshSequence;
+
+      void getLot(id)
+        .then((updatedLot) => {
+          if (!active || sequence !== refreshSequence) return;
+          setLot(updatedLot);
+          setError(null);
+        })
+        .catch(() => {
+          // Uma falha temporária não apaga os dados já exibidos.
+        });
+
+      void getPublicLotAudit(id)
+        .then((result) => {
+          if (!active || sequence !== refreshSequence) return;
+          setHistory(result.bids);
+          setHistoryError(
+            result.integrity.status === 'INVALID'
+              ? 'Foram detectadas inconsistências. Consulte a auditoria completa.'
+              : null,
+          );
+        })
+        .catch(() => {
+          if (!active || sequence !== refreshSequence) return;
+          setHistoryError('Não foi possível atualizar o histórico de lances.');
+        });
+
+      if (token && user?.role === 'BIDDER') {
+        void getWallet(token)
+          .then((updatedWallet) => {
+            if (!active || sequence !== refreshSequence) return;
+            setWallet(updatedWallet);
+          })
+          .catch(() => {
+            // Mantém o último saldo conhecido.
+          });
+
+        void getLotParticipation(id, token)
+          .then((result) => {
+            if (!active || sequence !== refreshSequence) return;
+            setParticipation(result);
+          })
+          .catch(() => {
+            if (!active || sequence !== refreshSequence) return;
+            setParticipation(null);
+          });
+      }
+    }
+
+    source.onopen = () => {
+      if (active) setLiveStatus('connected');
+    };
+
+    source.onerror = () => {
+      if (active) setLiveStatus('reconnecting');
+    };
+
+    source.addEventListener('lot-updated', refreshLiveData);
+    source.addEventListener('sync', refreshLiveData);
+
+    refreshLiveData();
+
+    return () => {
+      active = false;
+      source.close();
+    };
+  }, [id, token, user?.role]);
+
+  useEffect(() => {
+    if (!id || !deadlineReached) return;
+
+    let active = true;
+    let checking = false;
+
+    async function checkClosing() {
+      if (!id || checking) return;
+
+      checking = true;
+
+      try {
+        const updatedLot = await getLot(id);
+
+        if (!active) return;
+
+        if (updatedLot.status === 'CLOSED' && token && user?.role === 'BIDDER') {
+          const [walletResult, participationResult] = await Promise.allSettled([
+            getWallet(token),
+            getLotParticipation(id, token),
+          ]);
+
+          if (!active) return;
+
+          if (walletResult.status === 'fulfilled') {
+            setWallet(walletResult.value);
+          }
+
+          if (participationResult.status === 'fulfilled') {
+            setParticipation(participationResult.value);
+          }
+        }
+
+        setLot(updatedLot);
+      } catch {
+        // Uma falha temporária não altera o resultado exibido.
+      } finally {
+        checking = false;
+      }
+    }
+
+    void checkClosing();
+
+    const interval = window.setInterval(() => {
+      void checkClosing();
+    }, 2000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [deadlineReached, id, token, user?.role]);
+
+  const remainingMs = lot?.endsAt ? Math.max(0, new Date(lot.endsAt).getTime() - now) : null;
+  const expiredLocally = lot?.status === 'OPEN' && remainingMs !== null && remainingMs <= 0;
+  const alreadyLeading = participation?.hasBid === true && participation.isLeading;
 
   function handlePlaceBid(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,13 +256,14 @@ export function LotDetailsPage() {
       !lot ||
       user?.role !== 'BIDDER' ||
       lot.status !== 'OPEN' ||
+      expiredLocally ||
+      alreadyLeading ||
       submittingBid
     ) {
       return;
     }
 
     setBidError(null);
-    setBidSuccess(null);
 
     if (!bidAmount.trim()) {
       setBidError('Informe o valor do seu lance.');
@@ -118,7 +278,6 @@ export function LotDetailsPage() {
     }
 
     const [whole, fraction = ''] = normalizedAmount.split('.');
-
     const amountInCents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
 
     if (!Number.isSafeInteger(amountInCents) || amountInCents <= 0) {
@@ -136,7 +295,7 @@ export function LotDetailsPage() {
       return;
     }
 
-    // Não registra ainda. Abre primeiro o modal de confirmação.
+    // O envio definitivo acontece somente após a confirmação no modal.
     setPendingBidAmountInCents(amountInCents);
   }
 
@@ -147,6 +306,8 @@ export function LotDetailsPage() {
       !lot ||
       user?.role !== 'BIDDER' ||
       lot.status !== 'OPEN' ||
+      expiredLocally ||
+      alreadyLeading ||
       pendingBidAmountInCents === null ||
       submittingBid
     ) {
@@ -155,29 +316,25 @@ export function LotDetailsPage() {
 
     setSubmittingBid(true);
     setBidError(null);
-    setBidSuccess(null);
 
     try {
       await placeBid(id, pendingBidAmountInCents, token);
-
       setPendingBidAmountInCents(null);
       setBidAmount('');
-      setBidSuccess('Lance registrado com sucesso!');
     } catch (cause: unknown) {
       setPendingBidAmountInCents(null);
-
       setBidError(cause instanceof Error ? cause.message : 'Não foi possível registrar o lance.');
     } finally {
-      // Obtém os valores atuais mesmo quando o lance foi recusado,
-      // por exemplo, porque outro participante ofereceu mais.
-      const [updatedLot, updatedWallet] = await Promise.allSettled([getLot(id), getWallet(token)]);
+      const [updatedLot, updatedWallet, updatedParticipation] = await Promise.allSettled([
+        getLot(id),
+        getWallet(token),
+        getLotParticipation(id, token),
+      ]);
 
-      if (updatedLot.status === 'fulfilled') {
-        setLot(updatedLot.value);
-      }
-
-      if (updatedWallet.status === 'fulfilled') {
-        setWallet(updatedWallet.value);
+      if (updatedLot.status === 'fulfilled') setLot(updatedLot.value);
+      if (updatedWallet.status === 'fulfilled') setWallet(updatedWallet.value);
+      if (updatedParticipation.status === 'fulfilled') {
+        setParticipation(updatedParticipation.value);
       }
 
       setSubmittingBid(false);
@@ -209,7 +366,6 @@ export function LotDetailsPage() {
   }
 
   const currentPrice = lot.currentPriceInCents ?? lot.initialPriceInCents;
-
   const minimumNextBid =
     lot.currentPriceInCents === null
       ? lot.initialPriceInCents
@@ -246,6 +402,52 @@ export function LotDetailsPage() {
               {lot.description}
             </p>
           </section>
+
+          <section className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="border-b border-border p-5">
+              <h2 className="flex items-center gap-2 font-serif text-2xl">
+                <History className="size-5 text-[#C6A15B]" />
+                Últimos lances
+              </h2>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                Acompanhe a disputa em tempo real.
+              </p>
+            </div>
+
+            {historyError && (
+              <p role="alert" className="px-5 pt-4 text-sm text-destructive">
+                {historyError}
+              </p>
+            )}
+
+            {history === null ? (
+              <p className="p-5 text-sm text-muted-foreground">Carregando histórico...</p>
+            ) : history.length === 0 ? (
+              <p className="p-5 text-sm text-muted-foreground">Ainda não há lances neste lote.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {history
+                  .slice(-5)
+                  .reverse()
+                  .map((bid) => (
+                    <li
+                      key={bid.position}
+                      className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">Participante {bid.participantCode}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatDate(bid.createdAt)}
+                        </p>
+                      </div>
+
+                      <p className="font-semibold">{formatCurrency(bid.amountInCents)}</p>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </section>
         </div>
 
         <div>
@@ -254,7 +456,6 @@ export function LotDetailsPage() {
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#C6A15B]">
                 {lotStatusLabel[lot.status]}
               </p>
-
               <h1 className="font-serif text-4xl leading-tight">{lot.title}</h1>
             </div>
 
@@ -263,7 +464,6 @@ export function LotDetailsPage() {
                 <p className="text-sm text-muted-foreground">
                   {lot.currentPriceInCents !== null ? 'Lance atual' : 'Preço inicial'}
                 </p>
-
                 <p className="mt-2 font-serif text-4xl font-semibold">
                   {formatCurrency(currentPrice)}
                 </p>
@@ -272,7 +472,6 @@ export function LotDetailsPage() {
               <div className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Incremento mínimo</p>
-
                   <p className="mt-1 font-semibold">
                     {formatCurrency(lot.minimumIncrementInCents)}
                   </p>
@@ -280,7 +479,6 @@ export function LotDetailsPage() {
 
                 <div>
                   <p className="text-xs text-muted-foreground">Próximo lance mínimo</p>
-
                   <p className="mt-1 font-semibold">{formatCurrency(minimumNextBid)}</p>
                 </div>
               </div>
@@ -288,7 +486,6 @@ export function LotDetailsPage() {
               <div className="space-y-3 border-t border-border pt-5 text-sm">
                 <div className="flex items-start gap-3">
                   <CalendarClock className="mt-0.5 size-4 shrink-0 text-[#C6A15B]" />
-
                   <div>
                     <p className="text-muted-foreground">Início</p>
                     <p>{formatDate(lot.startsAt)}</p>
@@ -297,7 +494,6 @@ export function LotDetailsPage() {
 
                 <div className="flex items-start gap-3">
                   <CalendarClock className="mt-0.5 size-4 shrink-0 text-[#C6A15B]" />
-
                   <div>
                     <p className="text-muted-foreground">Encerramento</p>
                     <p>{formatDate(lot.endsAt)}</p>
@@ -305,7 +501,58 @@ export function LotDetailsPage() {
                 </div>
               </div>
 
-              {lot.status === 'OPEN' ? (
+              {lot.status === 'OPEN' && remainingMs !== null && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock3 className="size-4 text-[#C6A15B]" />
+                    Tempo restante
+                  </p>
+                  <p
+                    className={`mt-2 font-serif text-3xl font-semibold tabular-nums ${
+                      remainingMs <= 120_000 ? 'text-amber-500' : 'text-foreground'
+                    }`}
+                  >
+                    {formatCountdown(remainingMs)}
+                  </p>
+                </div>
+              )}
+
+              {user?.role === 'BIDDER' && participation?.hasBid && (
+                <div
+                  role="status"
+                  className={`rounded-lg border p-4 text-sm ${
+                    participation.isLeading
+                      ? 'border-emerald-500/40 bg-emerald-500/10'
+                      : 'border-[#C6A15B]/40 bg-[#C6A15B]/10'
+                  }`}
+                >
+                  <p className="font-semibold">
+                    {lot.status === 'CLOSED'
+                      ? participation.isLeading
+                        ? 'Você arrematou este lote!'
+                        : 'Você participou, mas não arrematou este lote.'
+                      : expiredLocally
+                        ? 'Aguardando confirmação do resultado...'
+                        : participation.isLeading
+                          ? 'Você está liderando este leilão!'
+                          : 'Seu lance foi superado.'}
+                  </p>
+
+                  {lot.status === 'OPEN' && !participation.isLeading && (
+                    <p className="mt-1 text-muted-foreground">
+                      A reserva do seu lance anterior foi liberada.
+                    </p>
+                  )}
+
+                  {participation.highestBidInCents && (
+                    <p className="mt-2">
+                      Seu maior lance: {formatCurrency(participation.highestBidInCents)}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {lot.status === 'OPEN' && !expiredLocally ? (
                 user?.role === 'BIDDER' && token ? (
                   <form
                     onSubmit={handlePlaceBid}
@@ -315,11 +562,9 @@ export function LotDetailsPage() {
                     {wallet && (
                       <div className="rounded-lg bg-muted/50 p-4 text-sm">
                         <p className="text-muted-foreground">Saldo disponível</p>
-
                         <p className="mt-1 text-lg font-semibold">
                           {formatCurrency(wallet.availableInCents)}
                         </p>
-
                         <Link
                           to="/carteira"
                           className="mt-2 inline-block text-xs underline underline-offset-4"
@@ -344,13 +589,12 @@ export function LotDetailsPage() {
                         onChange={(event) => {
                           setBidAmount(event.target.value);
                           setBidError(null);
-                          setBidSuccess(null);
                         }}
                         placeholder={(Number(minimumNextBid) / 100).toFixed(2).replace('.', ',')}
-                        disabled={submittingBid}
+                        disabled={submittingBid || alreadyLeading}
                         aria-invalid={Boolean(bidError)}
                         aria-describedby={bidError ? 'bid-amount-error' : undefined}
-                        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="h-11 w-full rounded-lg border border-input bg-background px-3 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                       />
 
                       <p className="text-xs text-muted-foreground">
@@ -364,19 +608,17 @@ export function LotDetailsPage() {
                       )}
                     </div>
 
-                    {bidSuccess && (
-                      <p role="status" className="text-sm font-medium text-foreground">
-                        {bidSuccess}
-                      </p>
-                    )}
-
                     <Button
                       type="submit"
                       className="brand-button w-full"
                       size="lg"
-                      disabled={submittingBid}
+                      disabled={submittingBid || alreadyLeading}
                     >
-                      {submittingBid ? 'Registrando lance...' : 'Revisar lance'}
+                      {submittingBid
+                        ? 'Registrando lance...'
+                        : alreadyLeading
+                          ? 'Você já está liderando'
+                          : 'Revisar lance'}
                     </Button>
 
                     <p className="text-center text-xs text-muted-foreground">
@@ -395,10 +637,30 @@ export function LotDetailsPage() {
                 )
               ) : (
                 <Button disabled className="w-full" size="lg">
-                  {lot.status === 'SCHEDULED' ? 'Leilão ainda não iniciado' : 'Leilão encerrado'}
+                  {expiredLocally
+                    ? 'Finalizando leilão...'
+                    : lot.status === 'SCHEDULED'
+                      ? 'Leilão ainda não iniciado'
+                      : 'Leilão encerrado'}
                 </Button>
               )}
             </div>
+
+            {lot.status === 'OPEN' && (
+              <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span
+                  aria-hidden="true"
+                  className={`size-2 rounded-full ${
+                    liveStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}
+                />
+                {liveStatus === 'connected'
+                  ? 'Atualização de lances ao vivo ativa'
+                  : liveStatus === 'reconnecting'
+                    ? 'Reconectando às atualizações ao vivo...'
+                    : 'Conectando às atualizações ao vivo...'}
+              </p>
+            )}
 
             <p className="flex items-start gap-2 text-sm text-muted-foreground">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#C6A15B]" />
@@ -418,9 +680,7 @@ export function LotDetailsPage() {
       <AlertDialog
         open={pendingBidAmountInCents !== null}
         onOpenChange={(open) => {
-          if (!open && !submittingBid) {
-            setPendingBidAmountInCents(null);
-          }
+          if (!open && !submittingBid) setPendingBidAmountInCents(null);
         }}
       >
         <AlertDialogContent className="max-w-md border-border bg-card text-card-foreground">
@@ -428,7 +688,6 @@ export function LotDetailsPage() {
             <AlertDialogTitle className="font-serif text-2xl">
               Confirmar seu lance?
             </AlertDialogTitle>
-
             <AlertDialogDescription className="pt-2 leading-relaxed">
               Você está prestes a participar do leilão da obra{' '}
               <strong className="text-foreground">{lot.title}</strong>.
@@ -439,7 +698,6 @@ export function LotDetailsPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Valor do lance
             </p>
-
             <p className="mt-3 font-serif text-4xl font-semibold">
               {formatCurrency(String(pendingBidAmountInCents ?? 0))}
             </p>
@@ -460,9 +718,8 @@ export function LotDetailsPage() {
 
           <AlertDialogFooter className="mt-3 gap-2 sm:gap-2">
             <AlertDialogCancel disabled={submittingBid}>Voltar</AlertDialogCancel>
-
             <AlertDialogAction
-              disabled={submittingBid}
+              disabled={submittingBid || expiredLocally || alreadyLeading}
               className="bg-[#7A2234] text-white hover:bg-[#681C2B]"
               onClick={(event) => {
                 event.preventDefault();

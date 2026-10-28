@@ -65,3 +65,27 @@ export async function getLot(id: string, signal?: AbortSignal): Promise<Lot> {
 
   return response.lot;
 }
+
+export type LotParticipation = {
+  hasBid: boolean;
+  isLeading: boolean;
+  highestBidInCents: string | null;
+};
+
+export async function getLotParticipation(lotId: string, token: string): Promise<LotParticipation> {
+  const response = await fetch(`/api/lots/${encodeURIComponent(lotId)}/participation`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Não foi possível consultar sua participação.');
+  }
+
+  const result = (await response.json()) as {
+    participation: LotParticipation;
+  };
+
+  return result.participation;
+}

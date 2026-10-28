@@ -85,6 +85,6 @@ describe('Audit checkpoint synchronization', () => {
     const result = await verifyAuditCheckpoints(missingDirectory);
 
     expect(result.valid).toBe(false);
-    expect(result.error).toBe('Checkpoint ausente ou inválido.');
+    expect(result.error).toBe('Registro externo de integridade ausente ou inválido.');
   });
 });
