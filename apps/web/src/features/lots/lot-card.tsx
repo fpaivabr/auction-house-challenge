@@ -37,7 +37,7 @@ export function LotCard({ lot }: LotCardProps) {
                 ? 'bg-[#237348] text-white'
                 : lot.status === 'SCHEDULED'
                   ? 'bg-[#C6A15B] text-[#1F1E1C]'
-                  : 'bg-secondary text-secondary-foreground'
+                  : 'bg-[#D8C8BA] text-[#3D342F] dark:bg-[#475569] dark:text-white'
             }`}
           >
             {lotStatusLabel[lot.status]}

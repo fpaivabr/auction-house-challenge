@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Gavel,
   LayoutDashboard,
-  LogIn,
   LogOut,
   Menu,
   Moon,
@@ -67,39 +66,40 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md print:hidden">
-      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-18 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
           aria-label="Modern Auction — página inicial"
-          className="flex min-w-0 items-center gap-2.5"
+          className="flex min-w-0 shrink-0 items-center gap-2.5"
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#C6A15B]/50 text-[#C6A15B]">
             <Gavel className="size-5" aria-hidden="true" />
           </span>
 
-          <span className="truncate text-sm font-semibold tracking-[0.13em] sm:text-base">
+          <span className="hidden truncate text-sm font-semibold tracking-[0.13em] min-[380px]:inline sm:text-base">
             MODERN AUCTION
           </span>
         </Link>
 
-        <nav aria-label="Navegação principal" className="hidden items-center gap-6 md:flex">
-          <NavLink to="/" end className={({ isActive }) => navClass(isActive)}>
-            Leilões
-          </NavLink>
-          {!loading && user?.role === 'BIDDER' && (
-            <NavLink to="/arremates" className={({ isActive }) => navClass(isActive)}>
-              Meus arremates
-            </NavLink>
-          )}
-
+        <div className="hidden min-w-0 items-center gap-4 lg:flex">
           {!loading && user && (
-            <NavLink to={accountDestination} className={({ isActive }) => navClass(isActive)}>
-              {accountLabel}
-            </NavLink>
-          )}
-        </nav>
+            <nav aria-label="Navegação principal" className="flex items-center gap-5 xl:gap-6">
+              <NavLink to="/" end className={({ isActive }) => navClass(isActive)}>
+                Leilões
+              </NavLink>
 
-        <div className="hidden items-center gap-2 md:flex">
+              {user.role === 'BIDDER' && (
+                <NavLink to="/arremates" className={({ isActive }) => navClass(isActive)}>
+                  Meus arremates
+                </NavLink>
+              )}
+
+              <NavLink to={accountDestination} className={({ isActive }) => navClass(isActive)}>
+                {accountLabel}
+              </NavLink>
+            </nav>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
@@ -152,100 +152,95 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
             ))}
         </div>
 
-        <div className="flex items-center gap-1 md:hidden">
-          <Button variant="ghost" size="icon" onClick={onToggleTheme} aria-label={themeLabel}>
+        <div className="flex shrink-0 items-center gap-1 lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleTheme}
+            aria-label={themeLabel}
+            title={themeLabel}
+          >
             {theme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
           </Button>
 
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Abrir menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
+          {!loading &&
+            (user ? (
+              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Abrir menu">
+                    <Menu className="size-5" />
+                  </Button>
+                </SheetTrigger>
 
-            <SheetContent side="right" className="w-[min(85vw,320px)]">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <Gavel className="size-5 text-[#C6A15B]" />
-                  Modern Auction
-                </SheetTitle>
-                <SheetDescription>Navegação da plataforma</SheetDescription>
-              </SheetHeader>
+                <SheetContent side="right" className="w-[min(85vw,320px)]">
+                  <SheetHeader>
+                    <SheetTitle className="flex items-center gap-2">
+                      <Gavel className="size-5 text-[#C6A15B]" />
+                      Modern Auction
+                    </SheetTitle>
+                    <SheetDescription>Navegação da plataforma</SheetDescription>
+                  </SheetHeader>
 
-              <nav aria-label="Navegação mobile" className="flex flex-col gap-2 px-4">
-                <Link
-                  to="/"
-                  onClick={closeMenu}
-                  className="flex items-center gap-2 rounded-md px-3 py-3 text-sm font-medium hover:bg-accent"
-                >
-                  <Gavel className="size-4" />
-                  Leilões
-                </Link>
+                  <nav aria-label="Navegação mobile" className="flex flex-col gap-2 px-4">
+                    <Link
+                      to="/"
+                      onClick={closeMenu}
+                      className="flex items-center gap-2 rounded-md px-3 py-3 text-sm font-medium hover:bg-accent"
+                    >
+                      <Gavel className="size-4" />
+                      Leilões
+                    </Link>
 
-                {!loading &&
-                  (user ? (
-                    <>
+                    {user.role === 'BIDDER' && (
                       <Link
-                        to={accountDestination}
+                        to="/arremates"
                         onClick={closeMenu}
                         className="flex items-center gap-2 rounded-md px-3 py-3 text-sm hover:bg-accent"
                       >
-                        {isAuctioneer ? (
-                          <LayoutDashboard className="size-4" />
-                        ) : (
-                          <Wallet className="size-4" />
-                        )}
-                        {accountLabel}
+                        <Trophy className="size-4" />
+                        Meus arremates
                       </Link>
+                    )}
 
-                      {user.role === 'BIDDER' && (
-                        <Link
-                          to="/arremates"
-                          onClick={closeMenu}
-                          className="flex items-center gap-2 rounded-md px-3 py-3 text-sm hover:bg-accent"
-                        >
-                          <Trophy className="size-4" />
-                          Meus arremates
-                        </Link>
+                    <Link
+                      to={accountDestination}
+                      onClick={closeMenu}
+                      className="flex items-center gap-2 rounded-md px-3 py-3 text-sm hover:bg-accent"
+                    >
+                      {isAuctioneer ? (
+                        <LayoutDashboard className="size-4" />
+                      ) : (
+                        <Wallet className="size-4" />
                       )}
+                      {accountLabel}
+                    </Link>
 
-                      <div className="my-2 border-t border-border" />
+                    <div className="my-2 border-t border-border" />
 
-                      <p className="px-3 text-xs text-muted-foreground">{user.name}</p>
+                    <p className="px-3 text-xs text-muted-foreground">{user.name}</p>
 
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 rounded-md px-3 py-3 text-left text-sm hover:bg-accent"
-                      >
-                        <LogOut className="size-4" />
-                        Sair
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="my-2 border-t border-border" />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 rounded-md px-3 py-3 text-left text-sm hover:bg-accent"
+                    >
+                      <LogOut className="size-4" />
+                      Sair
+                    </button>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/login">Entrar</Link>
+                </Button>
 
-                      <Link
-                        to="/login"
-                        onClick={closeMenu}
-                        className="flex items-center gap-2 rounded-md px-3 py-3 text-sm hover:bg-accent"
-                      >
-                        <LogIn className="size-4" />
-                        Entrar
-                      </Link>
-
-                      <Button asChild className="brand-button">
-                        <Link to="/cadastro" onClick={closeMenu}>
-                          Criar conta
-                        </Link>
-                      </Button>
-                    </>
-                  ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                <Button asChild size="sm" className="brand-button hidden sm:inline-flex">
+                  <Link to="/cadastro">Criar conta</Link>
+                </Button>
+              </>
+            ))}
         </div>
       </div>
     </header>
