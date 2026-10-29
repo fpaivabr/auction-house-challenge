@@ -4,6 +4,7 @@ import { ArrowRight, Gavel, RotateCcw, Search, SlidersHorizontal } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { LotCard } from '@/features/lots/lot-card';
 import { getLots, type Lot, type LotStatus } from '@/features/lots/lots-api';
+import { ArtShowcase } from '@/components/home/art-showcase';
 
 type StatusFilter = 'ALL' | LotStatus;
 type SortOrder = 'recent' | 'price-asc' | 'price-desc';
@@ -81,8 +82,8 @@ export function HomePage() {
             </h1>
 
             <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-              Descubra lotes disponíveis, acompanhe as ofertas e participe de leilões em uma
-              experiência simples e transparente.
+              Entre obras marcantes e novas descobertas, encontre a arte que merece o seu próximo
+              lance.
             </p>
 
             <Button asChild size="lg" className="brand-button">
@@ -93,18 +94,7 @@ export function HomePage() {
             </Button>
           </div>
 
-          <div className="relative flex min-h-72 items-center justify-center overflow-hidden rounded-2xl border border-border bg-background p-10 sm:min-h-96">
-            <div className="absolute inset-6 rounded-xl border border-[#C6A15B]/30" />
-            <div className="relative space-y-5 text-center">
-              <div className="mx-auto flex size-20 items-center justify-center rounded-full border border-[#C6A15B]/60">
-                <Gavel className="size-9 text-[#C6A15B]" />
-              </div>
-              <p className="font-serif text-3xl">Modern Auction</p>
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-                Plataforma de leilões
-              </p>
-            </div>
-          </div>
+          <ArtShowcase />
         </div>
       </section>
 

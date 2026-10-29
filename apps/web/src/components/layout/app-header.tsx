@@ -72,12 +72,12 @@ export function AppHeader({ theme, onToggleTheme }: AppHeaderProps) {
           aria-label="Modern Auction — página inicial"
           className="flex min-w-0 shrink-0 items-center gap-2.5"
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#C6A15B]/50 text-[#C6A15B]">
+          <span className="brand-metal-emblem flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#C6A15B]/50 text-[#C6A15B]">
             <Gavel className="size-5" aria-hidden="true" />
           </span>
 
-          <span className="hidden truncate text-sm font-semibold tracking-[0.13em] min-[380px]:inline sm:text-base">
-            MODERN AUCTION
+          <span className="brand-wordmark hidden truncate text-lg min-[380px]:inline sm:text-xl">
+            Modern <span className="brand-wordmark-art">Art</span> Auction
           </span>
         </Link>
 

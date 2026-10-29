@@ -194,3 +194,37 @@
     background-color: var(--brand-primary-active);
   }
 }
+
+@layer utilities {
+  .brand-metal-emblem {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 245, 210, 0.19) 0%,
+      rgba(198, 161, 91, 0.04) 43%,
+      rgba(198, 161, 91, 0.17) 77%,
+      rgba(117, 83, 36, 0.09) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 245, 210, 0.34),
+      inset 0 -1px 1px rgba(125, 89, 42, 0.15);
+  }
+}
+
+/* Tipografia da marca no header e no footer */
+.brand-wordmark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+/* Bordô principal da Modern Auction */
+.brand-wordmark-art {
+  color: #7a2234;
+}
+
+/* Contorno luminoso sutil somente no tema escuro */
+.dark .brand-wordmark-art {
+  text-shadow:
+    0 0 1px rgba(244, 239, 232, 0.9),
+    0 0 3px rgba(244, 239, 232, 0.25);
+}
