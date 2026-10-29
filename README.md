@@ -431,9 +431,24 @@ Após o deploy, a validação deve incluir cadastro, login nos dois perfis, publ
 
 ## Uso de IA e créditos
 
-Ferramentas de **IA generativa (ChatGPT)** foram utilizadas como apoio durante a implementação: elaboração e revisão de trechos de código, diagnóstico de problemas, sugestões e documentação. O resultado foi integrado ao projeto e submetido a verificações de formatação, lint, build e testes automatizados da API.
+### Inteligência artificial no desenvolvimento
 
-As obras e imagens do catálogo são consultadas por meio da **[Open Access API do Cleveland Museum of Art](https://openaccess-api.clevelandart.org/)**, com seleção de imagens identificadas como **CC0**. A interface da aplicação é uma demonstração técnica e não representa vínculo comercial com o museu.
+Durante o desenvolvimento da Modern Art Auction, utilizei **IA generativa (ChatGPT)** como ferramenta de apoio técnico, com o objetivo de acelerar a implementação dentro do prazo de sete dias estabelecido para o desafio.
+
+A ferramenta foi utilizada principalmente nas seguintes atividades:
+
+- **Elaboração e revisão de código:** apoio na construção de funcionalidades, análise de trechos de código e sugestões de melhorias.
+- **Diagnóstico de problemas:** investigação de erros de execução, compilação, integração e configuração, com análise de mensagens de erro e alternativas de correção.
+- **Validação de soluções:** discussão de abordagens, identificação de possíveis inconsistências e apoio na interpretação dos resultados dos testes.
+- **Documentação:** auxílio na organização e redação das instruções de instalação, execução e apresentação do projeto.
+
+O desenvolvimento ocorreu de forma iterativa, com integração e ajustes das soluções propostas. O projeto foi submetido a verificações de formatação (Prettier), análise estática (ESLint), compilação (build) e testes automatizados da API.
+
+### Créditos das obras de arte
+
+As obras e imagens do catálogo são consultadas por meio da [Open Access API do Cleveland Museum of Art](https://openaccess-api.clevelandart.org/), com seleção de imagens identificadas como **CC0**.
+
+A aplicação é uma demonstração técnica e não possui vínculo comercial com o museu.
 
 **Desenvolvimento:** [Fernando Paiva Sousa](https://github.com/fpaivabr)
 **Repositório:** [fpaivabr/auction-house-challenge](https://github.com/fpaivabr/auction-house-challenge)
