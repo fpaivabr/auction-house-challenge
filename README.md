@@ -280,7 +280,11 @@ Sem `AUDIT_CHECKPOINT_DIR`, a verificação pública pode conferir a consistênc
 
 ## Contas e dados demonstrativos
 
-As contas demonstrativas são criadas pelo seed e utilizam a senha definida na variável de ambiente `DEMO_PASSWORD`. No ambiente publicado, essa senha será fornecida aos avaliadores junto à entrega do desafio.
+As contas demonstrativas são criadas pelo seed e compartilham uma senha de acesso.
+
+**Credenciais para avaliação da aplicação publicada:**
+
+**Senha:** `teste_senha`
 
 | Perfil      | E-mail                  | Acesso                                 |
 | ----------- | ----------------------- | -------------------------------------- |
@@ -288,9 +292,11 @@ As contas demonstrativas são criadas pelo seed e utilizam a senha definida na v
 | Licitante 1 | `bidder1@demo.local`    | Depositar saldo e registrar lances     |
 | Licitante 2 | `bidder2@demo.local`    | Disputar lances com outro participante |
 
+> As credenciais são destinadas exclusivamente ao ambiente demonstrativo. Os créditos e as operações financeiras são fictícios.
+
 Em uma base nova, cada licitante recebe **R$ 1.000.000,00** de saldo fictício. O seed também prepara um lote com preço inicial de **R$ 250.000,00**, incremento mínimo de **R$ 10.000,00**, duração inicial de aproximadamente **72 horas** e um lance de **R$ 275.000,00** feito pelo primeiro licitante.
 
-A criação pública de contas pela interface atribui o papel de **licitante**. O leiloeiro de demonstração é criado pelo seed.
+O cadastro público pela interface cria exclusivamente contas do tipo **licitante**. A conta de leiloeiro demonstrativa é criada pelo seed.
 
 **Sugestão de roteiro de avaliação:** entre com o leiloeiro para verificar o painel e criar ou publicar um lote; depois, entre com uma das contas de licitante para registrar um lance em um leilão aberto, acompanhar a atualização em tempo real, consultar a carteira e verificar a auditoria pública do lote.
 
@@ -461,7 +467,7 @@ Esses checkpoints fornecem evidências de integridade, mas o volume utilizado n�
 
 O ambiente publicado contém contas demonstrativas para os perfis de leiloeiro e licitante, além de lotes utilizados na avaliação das funcionalidades.
 
-As credenciais de acesso devem ser fornecidas aos avaliadores separadamente. O cadastro público cria contas do tipo licitante.
+As credenciais demonstrativas estão disponíveis na seção [Contas e dados demonstrativos](#contas-e-dados-demonstrativos). O cadastro público cria contas exclusivamente do tipo licitante.
 
 ### Disponibilidade
 
