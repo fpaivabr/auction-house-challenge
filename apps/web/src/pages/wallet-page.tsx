@@ -271,17 +271,18 @@ export function WalletPage() {
             Os saldos são simulados. Valores reservados correspondem a lances que estão liderando
             leilões ativos.
           </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Button asChild variant="outline" className="h-10">
+              <Link to="/">Explorar leilões</Link>
+            </Button>
 
-          <Button asChild variant="outline" className="mt-5">
-            <Link to="/">Explorar leilões</Link>
-          </Button>
-
-          <Button asChild variant="outline" className="mt-5 ml-3">
-            <Link to="/arremates">
-              <Trophy className="size-4" />
-              Meus arremates
-            </Link>
-          </Button>
+            <Button asChild variant="outline" className="h-10">
+              <Link to="/arremates">
+                <Trophy className="size-4" />
+                Meus arremates
+              </Link>
+            </Button>
+          </div>
         </>
       )}
     </main>

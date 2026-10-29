@@ -17,7 +17,7 @@ export function LotCard({ lot }: LotCardProps) {
         className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         aria-label={`Ver detalhes de ${lot.title}`}
       >
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className="relative aspect-4/3 overflow-hidden bg-muted">
           {lot.imageUrl ? (
             <img
               src={lot.imageUrl}

@@ -84,7 +84,7 @@ export function ArtShowcase() {
   }, [artworks.length]);
 
   return (
-    <div className="art-showcase relative isolate flex min-h-[21rem] items-center justify-center overflow-hidden rounded-2xl border border-border sm:min-h-96">
+    <div className="art-showcase relative isolate flex min-h-84 items-center justify-center overflow-hidden rounded-2xl border border-border sm:min-h-96">
       <div className="absolute inset-0" aria-hidden="true">
         {artworks.map((artwork, index) => (
           <img
@@ -109,7 +109,7 @@ export function ArtShowcase() {
         aria-hidden="true"
       />
 
-      <div className="relative z-10 mx-6 flex w-full max-w-[27rem] flex-col items-center gap-5 rounded-xl border border-[#C6A15B]/35 bg-[#161719]/72 px-3 py-7 text-center shadow-2xl backdrop-blur-[3px] sm:px-6 sm:py-9">
+      <div className="relative z-10 mx-6 flex w-full max-w-108 flex-col items-center gap-5 rounded-xl border border-[#C6A15B]/35 bg-[#161719]/72 px-3 py-7 text-center shadow-2xl backdrop-blur-[3px] sm:px-6 sm:py-9">
         <div className="brand-metal-emblem art-showcase__coin flex size-20 items-center justify-center rounded-full border border-[#C6A15B]/70 text-[#D7AD61]">
           <Gavel className="relative z-10 size-9" aria-hidden="true" />
         </div>

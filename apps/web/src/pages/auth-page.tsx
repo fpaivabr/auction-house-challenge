@@ -63,7 +63,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
       signIn(result);
 
-      navigate(result.user.role === 'AUCTIONEER' ? '/painel' : '/', {
+      navigate('/', {
         replace: true,
       });
     } catch (cause: unknown) {

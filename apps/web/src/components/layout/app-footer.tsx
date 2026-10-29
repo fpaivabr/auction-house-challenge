@@ -16,7 +16,7 @@ export function AppFooter() {
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-4 px-4 py-8 sm:px-6 md:grid-cols-[1fr_auto_1fr] lg:px-8">
         <div className="col-start-1 row-start-1 flex items-center gap-2">
           <span className="brand-metal-emblem flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#C6A15B]/50 text-[#C6A15B]">
-            <Gavel className="size-[18px]" aria-hidden="true" />
+            <Gavel className="size-4.5" aria-hidden="true" />
           </span>
 
           <span className="brand-wordmark text-base lg:text-lg">

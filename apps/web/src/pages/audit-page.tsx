@@ -177,7 +177,7 @@ export function AuditPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[580px] text-left text-sm">
+                <table className="w-full min-w-145 text-left text-sm">
                   <thead className="border-b border-border bg-muted/40">
                     <tr>
                       <th scope="col" className="px-5 py-4 font-semibold">
@@ -219,7 +219,7 @@ export function AuditPage() {
             <div className="flex items-start gap-3">
               {data.integrity.status === 'VALID' ? (
                 <CheckCircle2
-                  className="mt-1 size-7 shrink-0 text-[var(--success)]"
+                  className="mt-1 size-7 shrink-0 text-(--success)"
                   aria-hidden="true"
                 />
               ) : (
