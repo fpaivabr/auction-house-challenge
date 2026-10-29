@@ -7,8 +7,12 @@ Uma plataforma full stack de leilões de arte, com lances em tempo real, carteir
 ![Prévia da identidade visual da Modern Art Auction](docs/images/modern-art-auction-hero.png)
 
 > **Sobre o projeto:** desenvolvido para o desafio técnico **Elite Dev da Verzel**, que propõe a construção de uma casa de leilões online com catálogo proveniente de uma API pública, dois perfis de usuário, regras financeiras e auditoria dos lances.
+
+> **Publicação:** a Modern Art Auction está disponível publicamente no Railway, com frontend React, API Express e banco de dados PostgreSQL.
 >
-> **Publicação:** a aplicação está funcional em ambiente local. **O deploy público ainda será configurado**; a URL será acrescentada aqui após a validação em produção. A publicação é um requisito obrigatório do desafio.
+> **Acesse a aplicação:** [Modern Art Auction — Versão Online](https://auction-house-challenge-production.up.railway.app/)
+>
+> **Observação:** esta é uma plataforma demonstrativa. Os créditos e as transações financeiras são simulados.
 
 ## Índice
 
@@ -276,7 +280,7 @@ Sem `AUDIT_CHECKPOINT_DIR`, a verificação pública pode conferir a consistênc
 
 ## Contas e dados demonstrativos
 
-Após executar o seed, use a **mesma senha definida em `DEMO_PASSWORD`** para estas contas:
+As contas demonstrativas são criadas pelo seed e utilizam a senha definida na variável de ambiente `DEMO_PASSWORD`. No ambiente publicado, essa senha será fornecida aos avaliadores junto à entrega do desafio.
 
 | Perfil      | E-mail                  | Acesso                                 |
 | ----------- | ----------------------- | -------------------------------------- |
@@ -288,7 +292,7 @@ Em uma base nova, cada licitante recebe **R$ 1.000.000,00** de saldo fictício. 
 
 A criação pública de contas pela interface atribui o papel de **licitante**. O leiloeiro de demonstração é criado pelo seed.
 
-**Sugestão de roteiro de avaliação:** entre com o leiloeiro para verificar o painel; depois, entre com `bidder2@demo.local` para registrar um lance acima do atual; acompanhe a atualização ao vivo, consulte a carteira e abra a auditoria pública do lote.
+**Sugestão de roteiro de avaliação:** entre com o leiloeiro para verificar o painel e criar ou publicar um lote; depois, entre com uma das contas de licitante para registrar um lance em um leilão aberto, acompanhar a atualização em tempo real, consultar a carteira e verificar a auditoria pública do lote.
 
 ## Testes e qualidade
 
@@ -399,24 +403,71 @@ Os dados públicos de licitantes são representados por **identificadores pseud�
 
 ## Deploy e considerações de produção
 
-**Status:** publicação pública pendente. A URL da aplicação será adicionada nesta seção após o deploy e os testes de ponta a ponta.
+A aplicação está publicada no **Railway**, em um ambiente de demonstração que reúne frontend, backend e banco de dados.
 
-Para hospedar a solução, são necessários:
+**Aplicação pública:** [Modern Art Auction](https://auction-house-challenge-production.up.railway.app/)
 
-1. **PostgreSQL persistente**, com backup e uma `DATABASE_URL` de produção.
-2. **API Node.js de execução contínua**, necessária às rotinas de abertura/encerramento dos lotes e sincronização de auditoria; não basta executar funções efêmeras sem agendamento equivalente.
-3. **Frontend estático** gerado com `npm run build -w apps/web`, com fallback das rotas SPA para `index.html`.
-4. **Encaminhamento de `/api`** do domínio público do frontend para a API, ou configuração equivalente de proxy. O proxy de `vite.config.ts` é exclusivo do ambiente de desenvolvimento.
-5. **Segredos próprios de produção** para JWT e auditoria, sem reutilizar os de desenvolvimento.
-6. **Armazenamento persistente independente do banco** para `AUDIT_CHECKPOINT_DIR`, com bootstrap explícito e política de retenção apropriada.
-7. **HTTPS** e suporte a conexões SSE sem buffering indevido pelo proxy.
-8. Aplicação das migrations versionadas com `npx prisma migrate deploy`, **sem** executar reset destrutivo no banco.
+### Infraestrutura de produção
 
-A implementação atual distribui eventos SSE em memória; portanto, a configuração inicial de produção deve utilizar **uma instância da API**. Para múltiplas instâncias, seria necessário um mecanismo compartilhado de publicação de eventos.
+| Componente       | Implementação                                          |
+| ---------------- | ------------------------------------------------------ |
+| Hospedagem       | Railway                                                |
+| Frontend         | React + Vite, compilado e servido pelo Express         |
+| Backend          | Node.js 24 + Express 5                                 |
+| Banco de dados   | PostgreSQL 17, com volume persistente                  |
+| ORM e migrations | Prisma 7                                               |
+| Auditoria        | Checkpoints HMAC-SHA256 em volume persistente separado |
+| Comunicação      | HTTPS, API REST e Server-Sent Events (SSE)             |
 
-O seed é voltado a dados fictícios. Em produção, ele **não é executado automaticamente**; há uma proteção adicional que exige `NODE_ENV=production` e `ALLOW_DEMO_SEED=true` para autorizá-lo explicitamente. Isso deve ser avaliado apenas em um ambiente de demonstração controlado.
+O frontend e a API são disponibilizados no mesmo domínio. O Express entrega os arquivos estáticos compilados do React e atende às rotas `/api`, sem necessidade de um serviço independente para o frontend.
 
-Após o deploy, a validação deve incluir cadastro, login nos dois perfis, publicação de lote, lances simultâneos, carteira, SSE, encerramento/liquidação, comprovante público e auditoria após reinício do serviço.
+### Processo de publicação
+
+O Railway está conectado à branch `main` do repositório no GitHub. Novos commits enviados para essa branch podem iniciar automaticamente uma nova publicação.
+
+O processo utiliza:
+
+**Build:**
+
+```bash
+npm run build
+```
+
+**Pre-deploy (migrations):**
+
+```bash
+cd apps/api && npx prisma migrate deploy
+```
+
+**Inicialização:**
+
+```bash
+npm run start -w apps/api
+```
+
+As configurações sensíveis, incluindo `DATABASE_URL`, `JWT_SECRET`, `AUDIT_SECRET` e `DEMO_PASSWORD`, são gerenciadas por variáveis de ambiente no Railway e não são armazenadas no repositório.
+
+### Auditoria em produção
+
+O sistema utiliza um volume persistente independente do PostgreSQL para armazenar checkpoints criptográficos.
+
+A variável `AUDIT_CHECKPOINT_DIR` aponta para o diretório configurado no volume, e o primeiro checkpoint foi inicializado explicitamente após a criação dos dados demonstrativos.
+
+A API sincroniza novos registros periodicamente e permite consultar a integridade do histórico de lances pela interface pública.
+
+Esses checkpoints fornecem evidências de integridade, mas o volume utilizado não oferece garantias de imutabilidade contra administradores com controle sobre toda a infraestrutura.
+
+### Dados demonstrativos
+
+O ambiente publicado contém contas demonstrativas para os perfis de leiloeiro e licitante, além de lotes utilizados na avaliação das funcionalidades.
+
+As credenciais de acesso devem ser fornecidas aos avaliadores separadamente. O cadastro público cria contas do tipo licitante.
+
+### Disponibilidade
+
+A hospedagem é destinada à demonstração e avaliação técnica do projeto. A disponibilidade pública poderá ser encerrada após o processo seletivo, enquanto o código-fonte e as instruções de execução local permanecerão no GitHub.
+
+A implantação foi verificada quanto à disponibilidade da aplicação, conectividade com o banco de dados e consulta pública da integridade dos lances. Os demais fluxos devem ser validados no ambiente publicado antes da entrega final.
 
 ## Limitações conhecidas
 
@@ -427,7 +478,7 @@ Após o deploy, a validação deve incluir cadastro, login nos dois perfis, publ
 - **Auditoria:** a verificação externa depende da configuração, persistência e retenção adequada dos checkpoints.
 - **Seed demonstrativo:** utiliza um identificador próprio (`demo-seed`) para o lote de exemplo, mesmo quando aproveita a imagem de uma obra do museu. Portanto, esse lote não reserva automaticamente o identificador da obra no catálogo `cleveland`.
 - **Testes de interface:** ainda não há suíte automatizada de testes end-to-end do frontend; a validação atual combina lint, build e testes manuais dos fluxos da interface.
-- **Deploy:** a publicação pública será documentada após a disponibilização e verificação da aplicação.
+- **Hospedagem demonstrativa:** a aplicação está publicada no Railway para avaliação técnica, sem compromisso de disponibilidade permanente após o processo seletivo.
 
 ## Uso de IA e créditos
 
