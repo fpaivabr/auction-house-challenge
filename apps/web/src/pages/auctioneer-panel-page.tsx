@@ -246,6 +246,21 @@ export function AuctioneerPanelPage() {
 
   const hasUnsavedPublication = Object.values(editedPublishForms).some(Boolean);
 
+  const sortedLots = [...lots].sort((a, b) => {
+    const priority: Record<ManagedLot['status'], number> = {
+      OPEN: 0,
+      SCHEDULED: 1,
+      DRAFT: 2,
+      CLOSED: 3,
+      CANCELLED: 4,
+    };
+
+    return (
+      priority[a.status] - priority[b.status] ||
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  });
+
   const [cancellingLotId, setCancellingLotId] = useState<string | null>(null);
 
   const [cancelError, setCancelError] = useState<{
@@ -438,7 +453,7 @@ export function AuctioneerPanelPage() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">{lots.length} lote(s) cadastrado(s)</p>
 
-            {lots.map((lot) => (
+            {sortedLots.map((lot) => (
               <article key={lot.id} className="rounded-xl border border-border bg-card p-5 sm:p-6">
                 <div className="flex flex-col gap-5 sm:flex-row">
                   <div className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">

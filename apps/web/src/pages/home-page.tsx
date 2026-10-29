@@ -48,6 +48,20 @@ export function HomePage() {
       })
       .sort((a, b) => {
         if (sort === 'recent') {
+          if (status === 'ALL') {
+            const priority: Record<LotStatus, number> = {
+              OPEN: 0,
+              SCHEDULED: 1,
+              CLOSED: 2,
+            };
+
+            const statusDifference = priority[a.status] - priority[b.status];
+
+            if (statusDifference !== 0) {
+              return statusDifference;
+            }
+          }
+
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         }
 
@@ -57,6 +71,7 @@ export function HomePage() {
         if (aPrice === bPrice) return 0;
 
         const ascending = aPrice < bPrice ? -1 : 1;
+
         return sort === 'price-asc' ? ascending : -ascending;
       });
   }, [lots, search, status, sort]);
