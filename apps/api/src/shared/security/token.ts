@@ -13,7 +13,7 @@ export async function createAccessToken(userId: string): Promise<string> {
     .setIssuer(issuer)
     .setAudience(audience)
     .setIssuedAt()
-    .setExpirationTime('2h')
+    .setExpirationTime('8h')
     .sign(secret);
 }
 
